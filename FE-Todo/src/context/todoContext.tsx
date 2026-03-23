@@ -25,8 +25,8 @@ interface TodoProviderProps {
   children: ReactNode;
 }
 
-// Thay đổi URL này thành API endpoint của bạn
-const API_BASE_URL = "http://localhost:3000/tasks";
+// Tự động dùng /tasks khi deploy (Nginx lo proxy), còn chạy local dev thì chọc thẳng vào localhost:8000
+const API_BASE_URL = import.meta.env.PROD ? "/tasks" : "http://localhost:8000/tasks";
 
 export const TodoProvider = ({ children }: TodoProviderProps) => {
   const [todos, setTodos] = useState<Todo[]>([]);
