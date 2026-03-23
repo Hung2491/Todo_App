@@ -1,0 +1,18 @@
+route:
+  group_by: ['alertname']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 3h
+  receiver: 'telegram-notifications'
+
+receivers:
+- name: 'telegram-notifications'
+  telegram_configs:
+  - bot_token: '8738278661:AAFVxh8kdOXvbN_4f-2cdCA3v8qjgYhS9EE'
+    chat_id: 8588793892
+    send_resolved: true
+    message: |
+      <b>🔥 Cảnh báo: {{ .Status | toUpper }}</b>
+      <b>Ứng dụng:</b> {{ .GroupLabels.alertname }}
+      <b>Chi tiết:</b> {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+      <b>Thời gian:</b> {{ .StartsAt.Format "15:04:05" }}

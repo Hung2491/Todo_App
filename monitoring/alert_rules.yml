@@ -1,0 +1,16 @@
+groups:
+- name: todo_app_rules
+  rules:
+  - alert: HighMemoryUsage
+    expr: (container_memory_usage_bytes{container_name="todo-app-frontend"} / 256000000) * 100 > 80
+    for: 1m
+    annotations:
+      summary: "RAM App Todo sắp đầy!"
+      description: "App Todo đang dùng hơn 80% RAM định mức (256MB) trong 1 phút."
+
+  - alert: InstanceDown
+    expr: up == 0
+    for: 1m
+    annotations:
+      summary: "Server sập!"
+      description: "Một dịch vụ trong hệ thống đã ngừng hoạt động hơn 1 phút."
