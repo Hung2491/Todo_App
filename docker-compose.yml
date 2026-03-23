@@ -1,0 +1,134 @@
+
+services:
+  # ── Frontend (Nginx serve React/Vite build) ─────────────────────────────
+  frontend:
+    build:
+      context: ./FE-Todo
+      args:
+        - VITE_API_URL=http://103.252.73.200:8000/
+      dockerfile: Dockerfile
+    container_name: todo-app-frontend
+    restart: always
+    ports:
+      - "3002:80"
+    volumes:
+      - ./todo.conf:/etc/nginx/conf.d/todo.conf:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - todo-network
+
+  # ── Backend (Node.js) ───────────────────────────────────────────────────
+  backend:
+    build: 
+      context: ./BE-Todo
+      dockerfile: Dockerfile
+    container_name: be-todo
+    ports:
+      - "8000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - mongodb
+    restart: always
+    networks:
+      - todo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── MongoDB ─────────────────────────────────────────────────────────────
+  mongodb:
+    image: mongo:latest
+    container_name: todo-mongodb
+    volumes:
+      - mongo_data:/data/db
+    restart: always
+    networks:
+      - todo-network
+
+  # ── Alertmanager ────────────────────────────────────────────────────────
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    ports:
+      - "9093:9093"
+    networks:
+      - todo-network
+    restart: always
+
+  # ── Prometheus ──────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - todo-network
+    restart: always
+
+  # ── Node Exporter ───────────────────────────────────────────────────────
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    ports:
+      - "9100:9100"
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+    networks:
+      - todo-network
+    restart: always
+
+  # ── cAdvisor ────────────────────────────────────────────────────────────
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - "8080:8080"
+    networks:
+      - todo-network
+    restart: always
+
+  # ── Grafana ─────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - todo-network
+    restart: always
+
+# ── Network ───────────────────────────────────────────────────────────────
+networks:
+  todo-network:
+    driver: bridge
+
+# ── Volumes ───────────────────────────────────────────────────────────────
+volumes:
+  mongo_data:
+  prometheus_data:
+  grafana_data:
