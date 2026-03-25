@@ -54,7 +54,7 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           # Lấy tất cả thư mục cần thiết
           source: "images.tar,docker-compose.yml,BE-Todo/.env,nginx,monitoring"
-          target: "~/home/Todo-App"
+          target: "~/home/hung/Todo-App"
 
       # 5. SSH vào Server để thực thi Docker chạy
       - name: Docker Deploy
@@ -65,7 +65,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            cd ~/home/Todo-App
+            cd ~/home/hung/Todo-App
             
             # Load lại các image mới nhất vừa copy từ Github Actions sang
             docker load < images.tar
