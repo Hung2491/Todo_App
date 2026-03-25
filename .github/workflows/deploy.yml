@@ -70,6 +70,8 @@ jobs:
             # Load lại các image mới nhất vừa copy từ Github Actions sang
             docker load < images.tar
             
+            rm images.tar # Xóa ngay sau khi load
+            
             # Chạy toàn bộ hệ thống (dùng lại image đã load, không build lại trên VPS để tiết kiệm RAM)
             docker compose up -d
             
