@@ -4,7 +4,7 @@ services:
     build:
       context: ./FE-Todo
       args:
-        - VITE_API_URL=http://192.168.0.193:8000/
+        - VITE_API_URL=http://10.0.0.1:8000/
       dockerfile: Dockerfile
     image: todo-app-frontend:latest
     container_name: todo-app-frontend
@@ -14,7 +14,7 @@ services:
     volumes:
       - ./nginx/todo.conf:/etc/nginx/conf.d/todo.conf:ro
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://192.168.0.193:3002/ > /dev/null || exit 1" ]
+      test: [ "CMD-SHELL", "wget -qO- http://10.0.0.1:3002/ > /dev/null || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -40,7 +40,7 @@ services:
     networks:
       - todo-network
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://192.168.0.193:8000/ > /dev/null || exit 1" ]
+      test: [ "CMD-SHELL", "wget -qO- http://10.0.0.1:8000/ > /dev/null || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
