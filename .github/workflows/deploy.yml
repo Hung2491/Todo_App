@@ -53,7 +53,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           # Lấy tất cả thư mục cần thiết
-          source: "images.tar,docker-compose.yml,BE-Todo/.env,nginx,monitoring"
+          source: "images.tar,docker-compose.yml,FE-Todo/,BE-Todo/.env,nginx,monitoring"
           target: "~/project/Todo_App"
 
       # 5. SSH vào Server để thực thi Docker chạy
