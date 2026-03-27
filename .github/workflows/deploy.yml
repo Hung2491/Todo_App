@@ -39,10 +39,10 @@ jobs:
           name: docker-images
 
       # 3. Tạo file .env cho BE thông qua Secret của Github để bảo mật tuyệt đối
-      - name: Create Backend Environment File
-        run: |
-          mkdir -p BE-Todo
-          echo "${{ secrets.ENV_FILE }}" > BE-Todo/.env
+      # - name: Create Backend Environment File
+      #   run: |
+      #     mkdir -p BE-Todo
+      #     echo "${{ secrets.ENV_FILE }}" > BE-Todo/.env
 
       # 4. Bắn toàn bộ file config và Image lên Server
       - name: Copy files to server
