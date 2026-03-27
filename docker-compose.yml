@@ -37,7 +37,7 @@ services:
       - mongodb
     environment:
       # Giấu tên DB hoặc chuỗi kết nối nhạy cảm
-      - MONGO_URI=mongodb://mongodb:27017/${DB_NAME}
+      - MONGO_URI=mongodb://mongodb:27017/ts-crud
     restart: always
     networks:
       - todo-network
