@@ -4,21 +4,20 @@ services:
     build:
       context: ./FE-Todo
       args:
-        # Giấu IP của server để không lộ sơ đồ mạng trên Git
         - VITE_API_URL=http://${SERVER_PRIVATE_IP}:8000/
       dockerfile: Dockerfile
-    image: todo-app-frontend:latest
+    image: ${DOCKERHUB_USERNAME}/todo-app-frontend:latest
     container_name: todo-app-frontend
     restart: always
     ports:
       - "3002:3002"
     volumes:
-      - ./nginx/todo.conf:/etc/nginx/conf.d/todo.conf:ro
+      # SỬA Ở ĐÂY: Mount vào thư mục templates để Nginx tự thay biến SERVER_PRIVATE_IP
+      - ./nginx/todo.conf:/etc/nginx/templates/todo.conf.template:ro
+    environment:
+      - SERVER_PRIVATE_IP=${SERVER_PRIVATE_IP}
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://${SERVER_PRIVATE_IP}:3002/ > /dev/null || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:3002/ > /dev/null || exit 1" ]
     networks:
       - todo-network
 
@@ -27,25 +26,20 @@ services:
     build:
       context: ./BE-Todo
       dockerfile: Dockerfile
-    image: todo-app-backend:latest
+    image: ${DOCKERHUB_USERNAME}/todo-app-backend:latest
     container_name: be-todo
-    ports:
-      - "8000:8000"
+    # ports: - "8000:8000" # Có thể ẩn port này nếu chỉ muốn truy cập qua Nginx (Port 3002)
     env_file:
-      - ./.env
+      - .env
     depends_on:
       - mongodb
     environment:
-      # Giấu tên DB hoặc chuỗi kết nối nhạy cảm
       - MONGO_URI=mongodb://mongodb:27017/ts-crud
     restart: always
     networks:
       - todo-network
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://${SERVER_PRIVATE_IP}:8000/ > /dev/null || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8000/ > /dev/null || exit 1" ]
 
   # ── MongoDB ─────────────────────────────────────────────────────────────
   mongodb:
@@ -53,19 +47,16 @@ services:
     container_name: todo-mongodb
     volumes:
       - mongo_data:/data/db
-    ports:
-      - "27017:27017"
     restart: always
     networks:
       - todo-network
 
-  # ── Các service Monitoring (Port giữ nguyên cho dễ quản lý) ──────────────
+  # ── Monitoring ──────────────────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml
       - prometheus_data:/prometheus
     ports:
       - "9090:9090"
@@ -83,8 +74,6 @@ services:
     networks:
       - todo-network
     restart: always
-
-  # ... (Các service khác như node-exporter, cadvisor giữ nguyên port như file cũ của ông)
 
 networks:
   todo-network:
