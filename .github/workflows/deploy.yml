@@ -11,14 +11,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Đăng nhập để đẩy Image lên chợ (Docker Hub)
+      # Đăng nhập vào Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Tự động build và push trực tiếp lên Hub (Không nén file .tar nữa)
+      # Build và đẩy Image lên Hub (Cực nhanh nhờ cơ chế Layer)
       - name: Build and Push Docker Images
         run: |
           docker compose build
@@ -31,7 +31,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Chỉ copy các file cấu hình nhẹ sang server (Bỏ images.tar)
+      # BƯỚC QUAN TRỌNG: Tạo file .env từ GitHub Secret để SCP có file mà bốc đi
+      - name: Create .env file from Secrets
+        run: |
+          echo "${{ secrets.ENV_FILE }}" > .env
+
+      # Bắn file config và file .env vừa tạo sang Server
       - name: Copy configs to server
         uses: appleboy/scp-action@master
         with:
@@ -39,11 +44,12 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "docker-compose.yml,nginx/,monitoring/,BE-Todo/.env.example" # Không copy .env thật nếu muốn bảo mật
+          # Source bốc file .env vừa tạo ở trên cùng với các folder config
+          source: "docker-compose.yml,.env,nginx/,monitoring/"
           target: "~/project/Todo_App"
 
-      # SSH vào server để ra lệnh update
-      - name: Docker Deploy
+      # SSH vào server để ra lệnh cho Docker "thay máu"
+      - name: Docker Deploy via SSH
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -52,14 +58,13 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             cd ~/project/Todo_App
-            # Đăng nhập để có quyền kéo image (nếu là repo private)
+            
+            # Đăng nhập để Pull được image từ Hub
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             
-            # Kéo bản mới nhất từ Docker Hub về (Chỉ tải phần thay đổi)
+            # Kéo bản mới nhất và khởi động lại
             docker compose pull
-            
-            # Restart hệ thống với code mới nhất
             docker compose up -d --force-recreate
             
-            # Dọn dẹp các bản build cũ để tránh đầy ổ cứng VPS
+            # Dọn dẹp Image cũ để không đầy ổ cứng VPS
             docker image prune -f
