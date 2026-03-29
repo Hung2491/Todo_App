@@ -11,20 +11,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. Tự động build lại TẤT CẢ image (FE + BE) dựa theo docker-compose.yml
-      - name: Build Docker Images via Compose
-        run: docker compose build
-
-      # 2. Đóng gói cả 2 Image thành 1 file tar duy nhất
-      - name: Save Docker Images
-        run: docker save todo-app-frontend:latest todo-app-backend:latest > images.tar
-
-      - name: Upload Image Artifact
-        uses: actions/upload-artifact@v4
+      # Đăng nhập để đẩy Image lên chợ (Docker Hub)
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
-          name: docker-images
-          path: images.tar
-          retention-days: 1
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Tự động build và push trực tiếp lên Hub (Không nén file .tar nữa)
+      - name: Build and Push Docker Images
+        run: |
+          docker compose build
+          docker compose push
 
   deploy:
     runs-on: ubuntu-latest
@@ -33,30 +31,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download Image Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: docker-images
-
-      # 3. Tạo file .env cho BE thông qua Secret của Github để bảo mật tuyệt đối
-      # - name: Create Backend Environment File
-      #   run: |
-      #     mkdir -p BE-Todo
-      #     echo "${{ secrets.ENV_FILE }}" > BE-Todo/.env
-
-      # 4. Bắn toàn bộ file config và Image lên Server
-      - name: Copy files to server
+      # Chỉ copy các file cấu hình nhẹ sang server (Bỏ images.tar)
+      - name: Copy configs to server
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          # Lấy tất cả thư mục cần thiết
-          source: "images.tar,docker-compose.yml,FE-Todo/,BE-Todo/.env,nginx,monitoring"
+          source: "docker-compose.yml,nginx/,monitoring/,BE-Todo/.env.example" # Không copy .env thật nếu muốn bảo mật
           target: "~/project/Todo-App"
 
-      # 5. SSH vào Server để thực thi Docker chạy
+      # SSH vào server để ra lệnh update
       - name: Docker Deploy
         uses: appleboy/ssh-action@master
         with:
@@ -66,14 +52,14 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             cd ~/project/Todo-App
+            # Đăng nhập để có quyền kéo image (nếu là repo private)
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             
-            # Load lại các image mới nhất vừa copy từ Github Actions sang
-            docker load < images.tar
+            # Kéo bản mới nhất từ Docker Hub về (Chỉ tải phần thay đổi)
+            docker compose pull
             
-            rm images.tar # Xóa ngay sau khi load
+            # Restart hệ thống với code mới nhất
+            docker compose up -d --force-recreate
             
-            # Chạy toàn bộ hệ thống (dùng lại image đã load, không build lại trên VPS để tiết kiệm RAM)
-            docker compose up -d
-            
-            # Dọn dẹp image thừa/cũ
+            # Dọn dẹp các bản build cũ để tránh đầy ổ cứng VPS
             docker image prune -f
