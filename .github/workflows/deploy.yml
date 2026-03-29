@@ -40,7 +40,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           source: "docker-compose.yml,nginx/,monitoring/,BE-Todo/.env.example" # Không copy .env thật nếu muốn bảo mật
-          target: "~/project/Todo-App"
+          target: "~/project/Todo_App"
 
       # SSH vào server để ra lệnh update
       - name: Docker Deploy
@@ -51,7 +51,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            cd ~/project/Todo-App
+            cd ~/project/Todo_App
             # Đăng nhập để có quyền kéo image (nếu là repo private)
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             
