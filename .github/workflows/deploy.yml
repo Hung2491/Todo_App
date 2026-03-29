@@ -11,14 +11,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Đăng nhập vào Docker Hub
+      # Tạo .env để lấy SERVER_PRIVATE_IP truyền vào Build Args
+      - name: Create .env for build
+        run: echo "${{ secrets.ENV_FILE }}" > .env
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build và đẩy Image lên Hub (Cực nhanh nhờ cơ chế Layer)
       - name: Build and Push Docker Images
         run: |
           docker compose build
@@ -31,12 +33,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # BƯỚC QUAN TRỌNG: Tạo file .env từ GitHub Secret để SCP có file mà bốc đi
-      - name: Create .env file from Secrets
-        run: |
-          echo "${{ secrets.ENV_FILE }}" > .env
+      - name: Create .env file for deploy
+        run: echo "${{ secrets.ENV_FILE }}" > .env
 
-      # Bắn file config và file .env vừa tạo sang Server
       - name: Copy configs to server
         uses: appleboy/scp-action@master
         with:
@@ -44,11 +43,9 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          # Source bốc file .env vừa tạo ở trên cùng với các folder config
           source: "docker-compose.yml,.env,nginx/,monitoring/"
           target: "~/project/Todo_App"
 
-      # SSH vào server để ra lệnh cho Docker "thay máu"
       - name: Docker Deploy via SSH
         uses: appleboy/ssh-action@master
         with:
@@ -58,13 +55,7 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             cd ~/project/Todo_App
-            
-            # Đăng nhập để Pull được image từ Hub
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            
-            # Kéo bản mới nhất và khởi động lại
             docker compose pull
             docker compose up -d --force-recreate
-            
-            # Dọn dẹp Image cũ để không đầy ổ cứng VPS
             docker image prune -f
