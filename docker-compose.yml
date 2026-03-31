@@ -82,6 +82,8 @@ services:
     environment:
       - MONGO_URI=mongodb://mongodb:27017/ts-crud
     restart: always
+    ports:
+      - "8000:8000"
     networks:
       - todo-network
     healthcheck:
