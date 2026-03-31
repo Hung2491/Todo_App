@@ -47,6 +47,8 @@ services:
     container_name: todo-mongodb
     volumes:
       - mongo_data:/data/db
+    ports:
+      - "27017:27017"
     restart: always
     networks:
       - todo-network
