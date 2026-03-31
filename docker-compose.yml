@@ -153,19 +153,7 @@ services:
       - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
     networks:
       - todo-network
-
-networks:
-  todo-network:
-    driver: bridge
-
-volumes:
-  mongo_data:
-  prometheus_data:
-  grafana_data:
-    restart: always
-    networks:
-      - todo-network
-
+      
   # ── Monitoring ──────────────────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:latest
