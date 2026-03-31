@@ -15,6 +15,7 @@ services:
       - ./nginx/todo.conf:/etc/nginx/templates/todo.conf.template:ro
     environment:
       - SERVER_PRIVATE_IP=${SERVER_PRIVATE_IP}
+      - VM2_PRIVATE_IP=${VM2_PRIVATE_IP}
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://localhost:3002/ > /dev/null || exit 1" ]
     networks:
