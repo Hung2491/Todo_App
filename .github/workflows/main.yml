@@ -42,6 +42,7 @@ jobs:
           
           # 2. GHI ĐÈ tên Username vào file .env này luôn
           echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+          echo "VM2_PRIVATE_IP=${{ secrets.VM2_HOST }}" >> .env
 
       - name: Copy configs to server
         uses: appleboy/scp-action@master
