@@ -12,54 +12,6 @@ services:
     ports:
       - "3002:3002"
     volumes:
-      # SỬA Ở ĐÂY: Mount vào thư mục templates để Nginx tự thay biến SERVER_PRIVATE_IP
-      - ./nginx/todo.conf:/etc/nginx/templates/todo.conf.template:ro
-    environment:
-      - SERVER_PRIVATE_IP=${SERVER_PRIVATE_IP}
-    healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://localhost:3002/ > /dev/null || exit 1" ]
-    networks:
-      - todo-network
-
-  # ── Backend ─────────────────────────────────────────────────────────────
-  backend:
-    build:
-      context: ./BE-Todo
-      dockerfile: Dockerfile
-    image: ${DOCKERHUB_USERNAME}/todo-app-backend:latest
-    container_name: be-todo
-    # ports: - "8000:8000" # Có thể ẩn port này nếu chỉ muốn truy cập qua Nginx (Port 3002)
-    env_file:
-      - .env
-    depends_on:
-      - mongodb
-    environment:
-      - MONGO_URI=mongodb://mongodb:27017/ts-crud
-    restart: always
-    networks:
-      - todo-network
-    healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://localhost:8000/ > /dev/null || exit 1" ]
-
-  # ── MongoDB ─────────────────────────────────────────────────────────────
-  mongodb:
-    image: mongo:latest
-    container_name: todo-mongodb
-    volumes:
-      - mongo_data:/data/dbservices:
-  # ── Frontend ─────────────────────────────────────────────────────────────
-  frontend:
-    build:
-      context: ./FE-Todo
-      args:
-        - VITE_API_URL=http://${SERVER_PRIVATE_IP}:8000/
-      dockerfile: Dockerfile
-    image: ${DOCKERHUB_USERNAME}/todo-app-frontend:latest
-    container_name: todo-app-frontend
-    restart: always
-    ports:
-      - "3002:3002"
-    volumes:
       - ./nginx/todo.conf:/etc/nginx/templates/todo.conf.template:ro
     environment:
       - SERVER_PRIVATE_IP=${SERVER_PRIVATE_IP}
@@ -79,11 +31,11 @@ services:
       - .env
     depends_on:
       - mongodb
-    environment:
-      - MONGO_URI=mongodb://mongodb:27017/ts-crud
-    restart: always
     ports:
       - "8000:8000"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/ts-crud
+    restart: always
     networks:
       - todo-network
     healthcheck:
@@ -153,30 +105,6 @@ services:
       - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
     networks:
       - todo-network
-      
-  # ── Monitoring ──────────────────────────────────────────────────────────
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    ports:
-      - "9090:9090"
-    networks:
-      - todo-network
-    restart: always
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-    networks:
-      - todo-network
-    restart: always
 
 networks:
   todo-network:
