@@ -60,15 +60,13 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             cd ~/project/Todo_App
-            # Tạo file .env riêng cho VM1
-            echo "${{ secrets.ENV_FILE }}" > .env
-            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
             echo "REMOTE_IP=${{ secrets.VM2_PRIVATE_IP }}" >> .env
-            
+            echo "SERVER_PRIVATE_IP=${{ secrets.VM1_PRIVATE_IP }}" >> .env         
+            echo "${{ secrets.ENV_FILE }}" >> .env
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             docker compose pull
             docker compose up -d --force-recreate
-            docker image prune -f
 
       # --- BƯỚC 3: DEPLOY VM2 ---
       - name: Deploy VM2
@@ -80,13 +78,10 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             cd ~/project/Todo_App
-            # Tạo file .env riêng cho VM2 (REMOTE_IP quay về VM1)
-            echo "${{ secrets.ENV_FILE }}" > .env
-            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
-            echo "REMOTE_IP=${{ secrets.VM1_PRIVATE_IP }}" >> .env
-            
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
+            echo "REMOTE_IP=${{ secrets.VM2_PRIVATE_IP }}" >> .env
+            echo "SERVER_PRIVATE_IP=${{ secrets.VM1_PRIVATE_IP }}" >> .env
+            echo "${{ secrets.ENV_FILE }}" >> .env
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             docker compose pull
-            # VM2 chỉ chạy app và LB, ko cần cụm monitoring nếu muốn tiết kiệm tài nguyên
             docker compose up -d --force-recreate
-            docker image prune -f
