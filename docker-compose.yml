@@ -1,89 +1,90 @@
-name: CI/CD Docker HA Deploy
+# VM1: nginx load balancer + frontend + monitoring stack
+services:
 
-on:
-  push:
-    branches: ["main"]
+  frontend:
+    build:
+      context: ./FE-Todo
+      args:
+        - VITE_API_URL=http://${SERVER_PRIVATE_IP}:8000/
+      dockerfile: Dockerfile
+    image: ${DOCKERHUB_USERNAME}/todo-app-frontend:latest
+    container_name: todo-app-frontend
+    restart: always
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./nginx/todo.conf.template:/etc/nginx/templates/todo.conf.template:ro
+    environment:
+      - SERVER_PRIVATE_IP=${SERVER_PRIVATE_IP}
+      - VM2_PRIVATE_IP=${VM2_PRIVATE_IP}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/ > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - todo-network
 
-jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4 # Sửa chỗ này
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - todo-network
+    restart: always
 
-      - name: Create dummy .env for build
-        run: |
-          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
-          echo "SERVER_PRIVATE_IP=127.0.0.1" >> .env
-          echo "REMOTE_IP=127.0.0.1" >> .env
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - todo-network
+    restart: always
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    restart: always
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8080:8080"   # expose để prometheus scrape
+    networks:
+      - todo-network
 
-      - name: Build and Push Docker Images
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        run: |
-          docker compose build
-          docker compose push
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: always
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"   # expose để prometheus scrape
+    networks:
+      - todo-network
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4 # Sửa chỗ này
+networks:
+  todo-network:
+    driver: bridge
 
-      # Copy config lên cả 2 VM
-      - name: Copy configs to VM1 & VM2
-        uses: appleboy/scp-action@master
-        with:
-          host: "${{ secrets.SERVER_HOST }},${{ secrets.VM2_HOST }}"
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT }}
-          source: "docker-compose.yml,nginx/,monitoring/"
-          target: "~/project/Todo_App"
-
-      # Deploy VM1 (Remote trỏ sang VM2)
-      - name: Deploy VM1
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT }}
-          script: |
-            mkdir -p ~/project/Todo_App
-            cd ~/project/Todo_App
-            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
-            echo "REMOTE_IP=${{ secrets.VM2_PRIVATE_IP }}" >> .env
-            echo "SERVER_PRIVATE_IP=${{ secrets.VM1_PRIVATE_IP }}" >> .env         
-            echo "${{ secrets.ENV_FILE }}" >> .env
-            
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            docker compose pull
-            docker compose up -d --force-recreate
-
-      # Deploy VM2 (Remote trỏ về VM1)
-      - name: Deploy VM2
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.VM2_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.VM2_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT }}
-          script: |
-            mkdir -p ~/project/Todo_App
-            cd ~/project/Todo_App
-            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
-            echo "REMOTE_IP=${{ secrets.VM1_PRIVATE_IP }}" >> .env
-            echo "SERVER_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}" >> .env
-            echo "${{ secrets.ENV_FILE }}" >> .env
-            
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            docker compose pull
-            docker compose up -d frontend backend cadvisor node-exporter --force-recreate
+volumes:
+  prometheus_data:
+  grafana_data:
