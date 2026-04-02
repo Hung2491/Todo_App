@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: checkout@v4
+        uses: actions/checkout@v4
 
       # Tạo file .env giả để docker compose build không báo lỗi thiếu file
       - name: Create dummy .env for build
@@ -35,7 +35,7 @@ jobs:
     needs: build-and-push
     steps:
       - name: Checkout code
-        uses: checkout@v4
+        uses: actions/checkout@v4
 
       # FIX 1: Copy config lên cả 2 VM cùng lúc
       - name: Copy configs to VM1 & VM2
