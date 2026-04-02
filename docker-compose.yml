@@ -24,8 +24,9 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and Push Docker Images
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
-          export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
           docker compose build
           docker compose push
 
