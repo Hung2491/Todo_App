@@ -14,8 +14,7 @@ services:
     volumes:
       - ./nginx/todo.conf:/etc/nginx/templates/todo.conf.template:ro
     environment:
-      - SERVER_PRIVATE_IP=${SERVER_PRIVATE_IP}
-      - VM2_PRIVATE_IP=${VM2_PRIVATE_IP}
+      - REMOTE_IP=${REMOTE_IP}
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://localhost:3002/ > /dev/null || exit 1" ]
     networks:
@@ -34,8 +33,6 @@ services:
       - mongodb
     ports:
       - "8000:8000"
-    environment:
-      - MONGO_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@${VM3_IP}:27017,${VM4_IP}:27017/ts-crud?replicaSet=rs0
     restart: always
     networks:
       - todo-network
