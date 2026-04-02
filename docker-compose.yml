@@ -4,7 +4,7 @@ services:
     build:
       context: ./FE-Todo
       args:
-        - VITE_API_URL=http://${VM1_PRIVATE_IP}:3002/
+        - VITE_API_URL=http://${VM1_PRIVATE_IP}:8000/
       dockerfile: Dockerfile
     image: ${DOCKERHUB_USERNAME}/todo-app-frontend:latest
     container_name: todo-app-frontend
