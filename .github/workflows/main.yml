@@ -1,4 +1,4 @@
-name: CI/CD Docker Deploy
+name: CI/CD Docker HA Deploy
 
 on:
   push:
@@ -7,15 +7,9 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    env:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      # Tạo .env để lấy SERVER_PRIVATE_IP truyền vào Build Args
-      - name: Create .env for build
-        run: echo "${{ secrets.ENV_FILE }}" > .env
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -25,6 +19,8 @@ jobs:
 
       - name: Build and Push Docker Images
         run: |
+          # Load username để Docker Compose build đúng tag image
+          export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
           docker compose build
           docker compose push
 
@@ -35,26 +31,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create .env file for deploy
-        run: |
-          # 1. Tạo file .env từ nội dung Secret ENV_FILE
-          echo "${{ secrets.ENV_FILE }}" > .env
-          
-          # 2. GHI ĐÈ tên Username vào file .env này luôn
-          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
-          echo "VM2_PRIVATE_IP=${{ secrets.VM2_HOST }}" >> .env
-
-      - name: Copy configs to server
+      # --- BƯỚC 1: COPY FILE CONFIG (Dùng chung cho cả 2 VM) ---
+      - name: Copy configs to VM1 & VM2
         uses: appleboy/scp-action@master
         with:
+          # Thêm cả 2 host vào đây để copy 1 lần
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "docker-compose.yml,.env,nginx/,monitoring/"
+          source: "docker-compose.yml,nginx/,monitoring/"
           target: "~/project/Todo_App"
 
-      - name: Docker Deploy VM1 via SSH
+      # --- BƯỚC 2: DEPLOY VM1 ---
+      - name: Deploy VM1
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -63,21 +53,33 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             cd ~/project/Todo_App
+            # Tạo file .env riêng cho VM1
+            echo "${{ secrets.ENV_FILE }}" > .env
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+            echo "REMOTE_IP=${{ secrets.VM2_PRIVATE_IP }}" >> .env
+            
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             docker compose pull
             docker compose up -d --force-recreate
             docker image prune -f
-        
-      - name: Deploy to VM2 via SSH
+
+      # --- BƯỚC 3: DEPLOY VM2 ---
+      - name: Deploy VM2
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VM2_HOST }}
           username: ${{ secrets.SERVER_USER }}
-          port: ${{ secrets.SERVER_PORT }}
           key: ${{ secrets.VM2_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
           script: |
             cd ~/project/Todo_App
+            # Tạo file .env riêng cho VM2 (REMOTE_IP quay về VM1)
+            echo "${{ secrets.ENV_FILE }}" > .env
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+            echo "REMOTE_IP=${{ secrets.VM1_PRIVATE_IP }}" >> .env
+            
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             docker compose pull
-            docker compose up -d --force-recreate  
+            # VM2 chỉ chạy app và LB, ko cần cụm monitoring nếu muốn tiết kiệm tài nguyên
+            docker compose up -d --force-recreate
             docker image prune -f
