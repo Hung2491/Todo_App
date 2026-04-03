@@ -28,8 +28,8 @@ jobs:
 
       - name: Build and Push images
         run: |
-          docker compose -f docker-compose.vm1.yml build
-          docker compose -f docker-compose.vm1.yml push
+          docker compose -f docker-compose.yml build
+          docker compose -f docker-compose.yml push
 
   # ─────────────────────────────────────────────
   # JOB 2: Deploy lên VM1
@@ -64,7 +64,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.VM1_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "docker-compose.vm1.yml,.env,nginx/,monitoring/"
+          source: "docker-compose.yml,.env,nginx/,monitoring/"
           target: "~/project/Todo_App"
 
       - name: Deploy VM1
@@ -77,8 +77,8 @@ jobs:
           script: |
             cd ~/project/Todo_App
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            docker compose -f docker-compose.vm1.yml pull
-            docker compose -f docker-compose.vm1.yml up -d --force-recreate
+            docker compose -f docker-compose.yml pull
+            docker compose -f docker-compose.yml up -d --force-recreate
             docker image prune -f
 
   # ─────────────────────────────────────────────
@@ -106,7 +106,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.VM2_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "docker-compose.vm2.yml,.env,nginx/"
+          source: "docker-compose.yml,.env,nginx/"
           target: "~/project/Todo_App"
 
       - name: Deploy VM2
@@ -119,6 +119,6 @@ jobs:
           script: |
             cd ~/project/Todo_App
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            docker compose -f docker-compose.vm2.yml pull
-            docker compose -f docker-compose.vm2.yml up -d --force-recreate
+            docker compose -f docker-compose.yml pull
+            docker compose -f docker-compose.yml up -d --force-recreate
             docker image prune -f
