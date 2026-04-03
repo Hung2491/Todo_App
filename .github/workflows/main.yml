@@ -106,7 +106,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.VM2_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "docker-compose.yml,.env,nginx/"
+          source: ".env,nginx/"
           target: "~/project/Todo_App"
 
       - name: Deploy VM2
