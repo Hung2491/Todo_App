@@ -37,7 +37,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MONGO_URI=mongodb://${VM3_PRIVATE_IP}:27017,${VM4_PRIVATE_IP}:27017/ts-crud?replicaSet=rs0&authSource=admin
+      - MONGO_URI=mongodb://admin:${MONGO_PASSWORD}@${VM3_PRIVATE_IP}:27017,${VM4_PRIVATE_IP}:27017/ts-crud?replicaSet=rs0&authSource=admin
     restart: always
     networks:
       - todo-network
