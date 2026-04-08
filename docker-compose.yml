@@ -4,18 +4,20 @@ services:
     build:
       context: ./FE-Todo
       args:
-        - VITE_API_URL=http://${VM1_PRIVATE_IP}:8000/
-      dockerfile: Dockerfile
+        - VITE_API_URL=http://xor-app.site/tasks
     image: ${DOCKERHUB_USERNAME}/todo-app-frontend:latest
     container_name: todo-app-frontend
     restart: always
     ports:
-      - "3002:3002"
+      - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/todo.conf.template:/etc/nginx/templates/todo.conf.template:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+      - /var/log/nginx:/var/log/nginx
     environment:
-      - VM1_PRIVATE_IP=${VM1_PRIVATE_IP}
-      - VM2_PRIVATE_IP=${VM2_PRIVATE_IP}
+      - PARTNER_IP=${PARTNER_IP}
     depends_on:
       - backend
     healthcheck:
@@ -27,9 +29,6 @@ services:
       - todo-network
 
   backend:
-    build:
-      context: ./BE-Todo
-      dockerfile: Dockerfile
     image: ${DOCKERHUB_USERNAME}/todo-app-backend:latest
     container_name: be-todo
     env_file:
@@ -46,12 +45,22 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-
+      
+  certbot:
+    image: certbot/certbot:latest
+    container_name: certbot
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/www/certbot:/var/www/certbot
+    networks:
+      - todo-network
+      
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alert.rules.yml:/etc/prometheus/alert.rules.yml
       - prometheus_data:/prometheus
     ports:
       - "9090:9090"
