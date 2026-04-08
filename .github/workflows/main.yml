@@ -44,11 +44,6 @@ jobs:
       - name: Tạo .env cho VM1
         run: |
           echo "${{ secrets.ENV_FILE_VM1 }}" > .env
-          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
-          echo "PARTNER_IP=${{ secrets.VM2_PRIVATE_IP }}" >> .env
-          echo "VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}" >> .env
-          echo "VM4_PRIVATE_IP=${{ secrets.VM4_PRIVATE_IP }}" >> .env
-
       - name: Generate prometheus.yml
         run: |
           export VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}
@@ -94,11 +89,6 @@ jobs:
       - name: Tạo .env cho VM2
         run: |
           echo "${{ secrets.ENV_FILE_VM2 }}" > .env
-          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
-          echo "PARTNER_IP=${{ secrets.VM1_PRIVATE_IP }}" >> .env
-          echo "VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}" >> .env
-          echo "VM4_PRIVATE_IP=${{ secrets.VM4_PRIVATE_IP }}" >> .env
-
       - name: Copy files lên VM2
         uses: appleboy/scp-action@master
         with:
