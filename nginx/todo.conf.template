@@ -1,19 +1,89 @@
+limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=web_limit:10m rate=30r/s;
+
 upstream backend_cluster {
     least_conn;
-    server backend:8000       max_fails=3 fail_timeout=10s;
-    server ${PARTNER_IP}:8000 max_fails=3 fail_timeout=10s;
+    server backend:8000           max_fails=3 fail_timeout=10s;
+    server ${PARTNER_IP}:8000     max_fails=3 fail_timeout=10s;
+    keepalive 32;
 }
 
+
+# Redirect HTTP → HTTPS
 server {
-    listen 3002;
+    listen 80;
+    server_name xor-app.site;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
 
     location / {
+        return 301 https://xor-app.site$request_uri;
+    }
+}
+
+# HTTPS
+server {
+    listen 443 ssl;
+    server_name xor-app.site;
+
+    ssl_certificate     /etc/letsencrypt/live/xor-app.site/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/xor-app.site/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    access_log /var/log/nginx/access.log main;
+    error_log  /var/log/nginx/error.log warn;
+
+    # Keepalive với client
+    keepalive_timeout   65;
+    keepalive_requests  100;
+
+    server_tokens off;
+    client_max_body_size 10M;
+    client_body_timeout 12s;
+    client_header_timeout 12s;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
+
+    real_ip_header X-Forwarded-For;
+    set_real_ip_from 0.0.0.0/0;
+    real_ip_recursive on;
+   
+    if ($http_user_agent = "") {
+        return 403;
+    }
+
+    if ($http_user_agent ~* (nikto|sqlmap|nmap|masscan|zgrab)) {
+        return 403;
+    }
+
+    if ($request_method !~ ^(GET|POST|PUT|DELETE|OPTIONS)$) {
+        return 405;
+    }
+
+    location / {
+        limit_req zone=web_limit burst=50 nodelay;
         root /usr/share/nginx/html/todo-app;
         index index.html;
         try_files $uri $uri/ /index.html;
+
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+            expires 7d;
+            add_header Cache-Control "public, no-transform";
+        }
     }
 
     location /tasks {
+        limit_req zone=api_limit burst=20 nodelay;
         proxy_pass http://backend_cluster;
 
         proxy_http_version 1.1;
@@ -25,6 +95,14 @@ server {
         proxy_connect_timeout 2s;
         proxy_read_timeout 5s;
         proxy_next_upstream error timeout http_502 http_503;
+    }
+
+    location ~* \.(env|git|config|bak|sql|log)$ {
+        return 403;
+    }
+
+    location ~ /\. {
+        return 403;
     }
 
     location /health {

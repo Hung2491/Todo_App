@@ -1,0 +1,27 @@
+2026/04/08 06:49:53 [notice] 1#1: using the "epoll" event method
+2026/04/08 06:49:53 [notice] 1#1: nginx/1.28.3
+2026/04/08 06:49:53 [notice] 1#1: built by gcc 15.2.0 (Alpine 15.2.0) 
+2026/04/08 06:49:53 [notice] 1#1: OS: Linux 6.8.0-107-generic
+2026/04/08 06:49:53 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1024:524288
+2026/04/08 06:49:53 [notice] 1#1: start worker processes
+2026/04/08 06:49:53 [notice] 1#1: start worker process 28
+2026/04/08 06:49:53 [notice] 1#1: start worker process 29
+2026/04/08 06:49:53 [notice] 1#1: start worker process 30
+2026/04/08 06:49:53 [notice] 1#1: start worker process 31
+2026/04/08 07:08:36 [error] 31#31: *52 limiting requests, excess: 20.690 by zone "api_limit", client: 103.252.74.199, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
+2026/04/08 07:08:36 [error] 28#28: *53 limiting requests, excess: 20.660 by zone "api_limit", client: 103.252.74.199, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
+2026/04/08 07:08:36 [error] 28#28: *54 limiting requests, excess: 20.590 by zone "api_limit", client: 103.252.74.199, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
+2026/04/08 07:08:36 [error] 28#28: *55 limiting requests, excess: 20.590 by zone "api_limit", client: 103.252.74.199, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
+2026/04/08 07:08:36 [error] 28#28: *56 limiting requests, excess: 20.570 by zone "api_limit", client: 103.252.74.199, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
+2026/04/08 07:08:36 [error] 31#31: *58 limiting requests, excess: 20.550 by zone "api_limit", client: 103.252.74.199, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
+2026/04/08 07:08:36 [error] 30#30: *59 limiting requests, excess: 20.530 by zone "api_limit", client: 103.252.74.199, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
+2026/04/08 07:08:36 [error] 28#28: *57 limiting requests, excess: 20.500 by zone "api_limit", client: 103.252.74.199, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
+2026/04/08 07:09:42 [error] 30#30: *96 limiting requests, excess: 20.340 by zone "api_limit", client: 103.252.74.252, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
+2026/04/08 07:09:42 [error] 30#30: *97 limiting requests, excess: 20.330 by zone "api_limit", client: 103.252.74.252, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
+2026/04/08 07:09:42 [error] 29#29: *100 limiting requests, excess: 20.290 by zone "api_limit", client: 103.252.74.252, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
+2026/04/08 07:09:42 [error] 30#30: *101 limiting requests, excess: 20.280 by zone "api_limit", client: 103.252.74.252, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
+2026/04/08 07:09:42 [error] 30#30: *102 limiting requests, excess: 20.270 by zone "api_limit", client: 103.252.74.252, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
+2026/04/08 07:09:42 [error] 29#29: *103 limiting requests, excess: 20.250 by zone "api_limit", client: 103.252.74.252, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
+2026/04/08 07:09:42 [error] 29#29: *104 limiting requests, excess: 20.240 by zone "api_limit", client: 103.252.74.252, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
+2026/04/08 07:09:42 [error] 30#30: *105 limiting requests, excess: 20.200 by zone "api_limit", client: 103.252.74.252, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
+2026/04/08 07:09:42 [error] 29#29: *109 limiting requests, excess: 20.180 by zone "api_limit", client: 103.252.74.252, server: xor-app.site, request: "GET /tasks/ HTTP/1.0", host: "xor-app.site"
