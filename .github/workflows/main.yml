@@ -27,8 +27,8 @@ jobs:
 
       - name: Build and Push
         run: |
-          docker compose -f vm2/docker-compose.yml build
-          docker compose -f vm2/docker-compose.yml push
+          docker compose -f docker-compose.yml build
+          docker compose -f docker-compose.yml push
 
   # ─────────────────────────────────────────────
   # JOB 2: Deploy lên VM1 (LB + Monitoring)
@@ -41,10 +41,10 @@ jobs:
 
       - name: Tạo .env VM1
         run: |
-          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > vm1/.env
-          echo "VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}" >> vm1/.env
-          echo "VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}" >> vm1/.env
-          echo "VM_PUBLIC_IP=${{ secrets.VM1_PUBLIC_IP }}" >> vm1/.env
+          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
+          echo "VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}" >> .env
+          echo "VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}" >> .env
+          echo "VM_PUBLIC_IP=${{ secrets.VM1_PUBLIC_IP }}" >> .env
 
       - name: Generate prometheus.yml
         run: |
@@ -61,7 +61,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.VM1_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "docker-compose.yml,v.env,nginx/,monitoring/"
+          source: "docker-compose.yml,.env,nginx/,monitoring/"
           target: "~/project/Todo_App"
 
       - name: Deploy VM1
@@ -88,13 +88,13 @@ jobs:
 
       - name: Tạo .env VM2
         run: |
-          echo "${{ secrets.ENV_FILE_VM2 }}" > vm2/.env
-          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> vm2/.env
-          echo "MONGO_USER=${{ secrets.MONGO_USER }}" >> vm2/.env
-          echo "MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }}" >> vm2/.env
-          echo "VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}" >> vm2/.env
-          echo "VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}" >> vm2/.env
-          echo "VM4_PRIVATE_IP=${{ secrets.VM4_PRIVATE_IP }}" >> vm2/.env
+          echo "${{ secrets.ENV_FILE_VM2 }}" > .env
+          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+          echo "MONGO_USER=${{ secrets.MONGO_USER }}" >> .env
+          echo "MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }}" >> .env
+          echo "VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}" >> .env
+          echo "VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}" >> .env
+          echo "VM4_PRIVATE_IP=${{ secrets.VM4_PRIVATE_IP }}" >> .env
 
       - name: Copy files lên VM2
         uses: appleboy/scp-action@master
@@ -131,13 +131,13 @@ jobs:
 
       - name: Tạo .env VM3
         run: |
-          echo "${{ secrets.ENV_FILE_VM3 }}" > vm3/.env
+          echo "${{ secrets.ENV_FILE_VM3 }}" > .env
           echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> vm3/.env
           echo "MONGO_USER=${{ secrets.MONGO_USER }}" >> vm3/.env
-          echo "MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }}" >> vm3/.env
-          echo "VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}" >> vm3/.env
-          echo "VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}" >> vm3/.env
-          echo "VM4_PRIVATE_IP=${{ secrets.VM4_PRIVATE_IP }}" >> vm3/.env
+          echo "MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }}" >> .env
+          echo "VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}" >> .env
+          echo "VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}" >> .env
+          echo "VM4_PRIVATE_IP=${{ secrets.VM4_PRIVATE_IP }}" >> .env
 
       - name: Copy files lên VM3
         uses: appleboy/scp-action@master
