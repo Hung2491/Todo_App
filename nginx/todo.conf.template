@@ -49,9 +49,6 @@ server {
     ssl_session_cache   shared:SSL:10m;
     ssl_session_timeout 10m;
 
-    keepalive_timeout  65;
-    keepalive_requests 100;
-
     access_log /var/log/nginx/access.log;
     error_log  /var/log/nginx/error.log warn;
 
