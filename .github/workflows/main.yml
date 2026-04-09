@@ -72,7 +72,7 @@ jobs:
           key: ${{ secrets.VM1_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            cd ~/project/Todo_App/vm1
+            cd ~/project/Todo_App/
             docker compose pull
             docker compose up -d --force-recreate --remove-orphans
             docker image prune -f
@@ -114,7 +114,7 @@ jobs:
           key: ${{ secrets.VM2_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            cd ~/project/Todo_App/vm2
+            cd ~/project/Todo_App/
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             docker compose pull
             docker compose up -d --force-recreate --remove-orphans
@@ -132,8 +132,8 @@ jobs:
       - name: Tạo .env VM3
         run: |
           echo "${{ secrets.ENV_FILE_VM3 }}" > .env
-          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> vm3/.env
-          echo "MONGO_USER=${{ secrets.MONGO_USER }}" >> vm3/.env
+          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+          echo "MONGO_USER=${{ secrets.MONGO_USER }}" >> .env
           echo "MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }}" >> .env
           echo "VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}" >> .env
           echo "VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}" >> .env
@@ -157,7 +157,7 @@ jobs:
           key: ${{ secrets.VM3_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            cd ~/project/Todo_App/vm3
+            cd ~/project/Todo_App/
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             docker compose pull
             docker compose up -d --force-recreate --remove-orphans
