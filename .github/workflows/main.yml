@@ -61,7 +61,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.VM1_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "vm1/docker-compose.yml,vm1/.env,nginx/,monitoring/"
+          source: "docker-compose.yml,v.env,nginx/,monitoring/"
           target: "~/project/Todo_App"
 
       - name: Deploy VM1
@@ -103,7 +103,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.VM2_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "vm2/docker-compose.yml,vm2/.env"
+          source: ".env"
           target: "~/project/Todo_App"
 
       - name: Deploy VM2
@@ -146,7 +146,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.VM3_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "vm3/docker-compose.yml,vm3/.env"
+          source: ".env"
           target: "~/project/Todo_App"
 
       - name: Deploy VM3
