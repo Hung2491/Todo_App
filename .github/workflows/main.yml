@@ -7,17 +7,16 @@ on:
 jobs:
 
   # ─────────────────────────────────────────────
-  # JOB 1: Build và push image lên Docker Hub
+  # JOB 1: Build và Push image lên Docker Hub
   # ─────────────────────────────────────────────
   build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Create .env for build
         run: |
-          echo "${{ secrets.ENV_FILE_VM1 }}" > .env
+          echo "${{ secrets.ENV_FILE_VM2 }}" > .env
           echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
 
       - name: Login to Docker Hub
@@ -26,24 +25,27 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and Push images
+      - name: Build and Push
         run: |
-          docker compose -f docker-compose.yml build
-          docker compose -f docker-compose.yml push
+          docker compose -f vm2/docker-compose.yml build
+          docker compose -f vm2/docker-compose.yml push
 
   # ─────────────────────────────────────────────
-  # JOB 2: Deploy lên VM1
+  # JOB 2: Deploy lên VM1 (LB + Monitoring)
   # ─────────────────────────────────────────────
   deploy-vm1:
     runs-on: ubuntu-latest
     needs: build-and-push
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Tạo .env cho VM1
+      - name: Tạo .env VM1
         run: |
-          echo "${{ secrets.ENV_FILE_VM1 }}" > .env
+          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > vm1/.env
+          echo "VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}" >> vm1/.env
+          echo "VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}" >> vm1/.env
+          echo "VM_PUBLIC_IP=${{ secrets.VM1_PUBLIC_IP }}" >> vm1/.env
+
       - name: Generate prometheus.yml
         run: |
           export VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}
@@ -59,7 +61,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.VM1_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "docker-compose.yml,.env,nginx/,monitoring/"
+          source: "vm1/docker-compose.yml,vm1/.env,nginx/,monitoring/"
           target: "~/project/Todo_App"
 
       - name: Deploy VM1
@@ -70,25 +72,30 @@ jobs:
           key: ${{ secrets.VM1_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            cd ~/project/Todo_App
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            docker compose -f docker-compose.yml pull
-            docker compose -f docker-compose.yml up -d --force-recreate
+            cd ~/project/Todo_App/vm1
+            docker compose pull
+            docker compose up -d --force-recreate --remove-orphans
             docker image prune -f
 
   # ─────────────────────────────────────────────
-  # JOB 3: Deploy lên VM2
+  # JOB 3: Deploy lên VM2 (App + MongoDB Secondary)
   # ─────────────────────────────────────────────
   deploy-vm2:
     runs-on: ubuntu-latest
     needs: build-and-push
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Tạo .env cho VM2
+      - name: Tạo .env VM2
         run: |
-          echo "${{ secrets.ENV_FILE_VM2 }}" > .env
+          echo "${{ secrets.ENV_FILE_VM2 }}" > vm2/.env
+          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> vm2/.env
+          echo "MONGO_USER=${{ secrets.MONGO_USER }}" >> vm2/.env
+          echo "MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }}" >> vm2/.env
+          echo "VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}" >> vm2/.env
+          echo "VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}" >> vm2/.env
+          echo "VM4_PRIVATE_IP=${{ secrets.VM4_PRIVATE_IP }}" >> vm2/.env
+
       - name: Copy files lên VM2
         uses: appleboy/scp-action@master
         with:
@@ -96,7 +103,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.VM2_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: ".env,nginx/"
+          source: "vm2/docker-compose.yml,vm2/.env"
           target: "~/project/Todo_App"
 
       - name: Deploy VM2
@@ -107,8 +114,51 @@ jobs:
           key: ${{ secrets.VM2_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            cd ~/project/Todo_App
+            cd ~/project/Todo_App/vm2
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            docker compose -f docker-compose.yml pull
-            docker compose -f docker-compose.yml up -d --force-recreate
+            docker compose pull
+            docker compose up -d --force-recreate --remove-orphans
+            docker image prune -f
+
+  # ─────────────────────────────────────────────
+  # JOB 4: Deploy lên VM3 (App + MongoDB Secondary)
+  # ─────────────────────────────────────────────
+  deploy-vm3:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tạo .env VM3
+        run: |
+          echo "${{ secrets.ENV_FILE_VM3 }}" > vm3/.env
+          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> vm3/.env
+          echo "MONGO_USER=${{ secrets.MONGO_USER }}" >> vm3/.env
+          echo "MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }}" >> vm3/.env
+          echo "VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}" >> vm3/.env
+          echo "VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}" >> vm3/.env
+          echo "VM4_PRIVATE_IP=${{ secrets.VM4_PRIVATE_IP }}" >> vm3/.env
+
+      - name: Copy files lên VM3
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VM3_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.VM3_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          source: "vm3/docker-compose.yml,vm3/.env"
+          target: "~/project/Todo_App"
+
+      - name: Deploy VM3
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VM3_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.VM3_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            cd ~/project/Todo_App/vm3
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            docker compose pull
+            docker compose up -d --force-recreate --remove-orphans
             docker image prune -f
