@@ -1,10 +1,6 @@
 services:
 
   frontend:
-    build:
-      context: ./FE-Todo
-      args:
-        - VITE_API_URL=http://xor-app.site/tasks
     image: ${DOCKERHUB_USERNAME}/todo-app-frontend:latest
     container_name: todo-app-frontend
     restart: always
@@ -17,44 +13,17 @@ services:
       - /var/www/certbot:/var/www/certbot:ro
       - /var/log/nginx:/var/log/nginx
     environment:
-      - PARTNER_IP=${PARTNER_IP}
-    depends_on:
-      - backend
+      - VM2_PRIVATE_IP=${VM2_PRIVATE_IP}
+      - VM3_PRIVATE_IP=${VM3_PRIVATE_IP}
+      - VM_PUBLIC_IP=${VM_PUBLIC_IP}
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost/health > /dev/null || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
     networks:
       - todo-network
 
-  backend:
-    image: ${DOCKERHUB_USERNAME}/todo-app-backend:latest
-    container_name: be-todo
-    env_file:
-      - .env
-    ports:
-      - "8000:8000"
-    environment:
-      - MONGO_URI=mongodb://admin:${MONGO_PASSWORD}@${VM3_PRIVATE_IP}:27017,${VM4_PRIVATE_IP}:27017/ts-crud?replicaSet=rs0&authSource=admin
-    restart: always
-    networks:
-      - todo-network
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/ > /dev/null || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      
-  certbot:
-    image: certbot/certbot:latest
-    container_name: certbot
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt
-      - /var/www/certbot:/var/www/certbot
-    networks:
-      - todo-network
-      
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -67,6 +36,17 @@ services:
     networks:
       - todo-network
     restart: always
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    restart: always
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    ports:
+      - "9093:9093"
+    networks:
+      - todo-network
 
   grafana:
     image: grafana/grafana:latest
