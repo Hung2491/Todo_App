@@ -29,9 +29,8 @@ services:
     container_name: prometheus
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml   # fix: tên file đồng nhất
+      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml
       - prometheus_data:/prometheus
-    # Chỉ expose nội bộ, không ra ngoài internet
     ports:
       - "9090:9090"
     networks:
@@ -44,7 +43,6 @@ services:
     restart: always
     volumes:
       - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
-    # Chỉ expose nội bộ
     ports:
       - "9093:9093"
     networks:
@@ -53,7 +51,6 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
-    # Chỉ bind localhost, không expose ra 0.0.0.0
     ports:
       - "3000:3000"
     volumes:
@@ -63,26 +60,26 @@ services:
     restart: always
 
   cadvisor:
-  image: gcr.io/cadvisor/cadvisor:v0.49.1
-  container_name: cadvisor
-  restart: always
-  privileged: true
-  devices:
-    - /dev/kmsg
-  volumes:
-    - /:/rootfs:ro
-    - /var/run:/var/run:rw
-    - /sys:/sys:ro
-    - /var/lib/docker/:/var/lib/docker:ro
-    - /dev/disk/:/dev/disk:ro
-  command:
-    - '--docker_only=true'          
-    - '--store_container_labels=false'
-    - '--disable_metrics=advtcp,cpuLoad,cpu_topology,disk,diskIO,hugetlb,memory_numa,percpu,perf_event,process,referenced_memory,resctrl,sched,tcp,udp'
-  ports:
-    - "8080:8080"
-  networks:
-    - todo-network
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    restart: always
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    command:
+      - '--docker_only=true'
+      - '--store_container_labels=false'
+      - '--disable_metrics=advtcp,cpuLoad,cpu_topology,diskIO,hugetlb,memory_numa,percpu,perf_event,process,referenced_memory,resctrl,sched,tcp,udp'
+    ports:
+      - "8080:8080"
+    networks:
+      - todo-network
 
   node-exporter:
     image: prom/node-exporter:latest
@@ -96,7 +93,6 @@ services:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
-    # Chỉ expose nội bộ
     ports:
       - "9100:9100"
     networks:
