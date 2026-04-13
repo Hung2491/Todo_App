@@ -8,7 +8,7 @@ alerting:
   alertmanagers:
   - static_configs:
     - targets:
-      - 'localhost:9093'
+      - 'alertmanager:9093'
 
 scrape_configs:
   - job_name: 'prometheus'
@@ -18,14 +18,14 @@ scrape_configs:
   # VM1 - Load Balancer
   - job_name: 'node-exporter-vm1'
     static_configs:
-      - targets: ['localhost:9100']
+      - targets: ['node-exporter:9100']
         labels:
           vm: 'vm1'
           role: 'loadbalancer'
 
   - job_name: 'cadvisor-vm1'
     static_configs:
-      - targets: ['localhost:8080']
+      - targets: ['cadvisor:8080']
         labels:
           vm: 'vm1'
           role: 'loadbalancer'
