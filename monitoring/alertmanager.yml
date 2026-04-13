@@ -8,7 +8,7 @@ route:
 receivers:
 - name: 'telegram-notifications'
   telegram_configs:
-  - bot_token: '8738278661:AAFVxh8kdOXvbN_4f-2cdCA3v8qjgYhS9EE'
+  - bot_token: '8507200219:AAHDRIwPXOGmPP7Nk1_RdGoZtYpAcaySGyk'
     chat_id: 8588793892
     send_resolved: true
     parse_mode: 'HTML'
