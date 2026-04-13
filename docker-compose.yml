@@ -45,8 +45,8 @@ services:
     volumes:
       - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
     # Chỉ expose nội bộ
-    expose:
-      - "9093"
+    ports:
+      - "9093:9093"
     networks:
       - todo-network
 
@@ -74,8 +74,8 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     # Chỉ expose nội bộ
-    expose:
-      - "8080"
+    ports:
+      - "8080:8080"
     networks:
       - todo-network
 
@@ -92,8 +92,8 @@ services:
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
     # Chỉ expose nội bộ
-    expose:
-      - "9100"
+    ports:
+      - "9100:9100"
     networks:
       - todo-network
 
