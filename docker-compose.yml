@@ -63,21 +63,26 @@ services:
     restart: always
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
-    container_name: cadvisor
-    restart: always
-    privileged: true
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:rw
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
-    # Chỉ expose nội bộ
-    ports:
-      - "8080:8080"
-    networks:
-      - todo-network
+  image: gcr.io/cadvisor/cadvisor:v0.49.1
+  container_name: cadvisor
+  restart: always
+  privileged: true
+  devices:
+    - /dev/kmsg
+  volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:rw
+    - /sys:/sys:ro
+    - /var/lib/docker/:/var/lib/docker:ro
+    - /dev/disk/:/dev/disk:ro
+  command:
+    - '--docker_only=true'          
+    - '--store_container_labels=false'
+    - '--disable_metrics=advtcp,cpuLoad,cpu_topology,disk,diskIO,hugetlb,memory_numa,percpu,perf_event,process,referenced_memory,resctrl,sched,tcp,udp'
+  ports:
+    - "8080:8080"
+  networks:
+    - todo-network
 
   node-exporter:
     image: prom/node-exporter:latest
