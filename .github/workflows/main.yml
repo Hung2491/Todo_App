@@ -54,6 +54,14 @@ jobs:
           envsubst < monitoring/prometheus.yml > monitoring/prometheus.tmp.yml
           mv monitoring/prometheus.tmp.yml monitoring/prometheus.yml
 
+      # Inject Telegram secrets vào alertmanager (không hardcode trong file)
+      - name: Generate alertmanager.yml
+        run: |
+          export TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          export TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          envsubst < monitoring/alertmanager.yml > monitoring/alertmanager.tmp.yml
+          mv monitoring/alertmanager.tmp.yml monitoring/alertmanager.yml
+
       - name: Copy files lên VM1
         uses: appleboy/scp-action@master
         with:
