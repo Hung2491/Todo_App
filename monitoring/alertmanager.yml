@@ -4,15 +4,19 @@ route:
   group_interval: 5m
   repeat_interval: 3h
   receiver: 'telegram-notifications'
-
+ 
 receivers:
 - name: 'telegram-notifications'
   telegram_configs:
   - bot_token: '8738278661:AAFVxh8kdOXvbN_4f-2cdCA3v8qjgYhS9EE'
     chat_id: 8588793892
     send_resolved: true
+    parse_mode: 'HTML'
     message: |
-      <b>🔥 Cảnh báo: {{ .Status | toUpper }}</b>
-      <b>Ứng dụng:</b> {{ .GroupLabels.alertname }}
-      <b>Chi tiết:</b> {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
-      <b>Thời gian:</b> {{ .StartsAt.Format "15:04:05" }}
+      <b>🔥 {{ if eq .Status "firing" }}CẢNH BÁO{{ else }}✅ ĐÃ PHỤC HỒI{{ end }}</b>
+      {{ range .Alerts }}
+      <b>Alert:</b> {{ .Labels.alertname }}
+      <b>Severity:</b> {{ .Labels.severity }}
+      <b>Mô tả:</b> {{ .Annotations.description }}
+      <b>Thời gian:</b> {{ .StartsAt.Format "2006-01-02 15:04:05" }} UTC
+      {{ end }}
