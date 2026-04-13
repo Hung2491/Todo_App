@@ -1,6 +1,8 @@
 groups:
 - name: todo_app_rules
   rules:
+
+  # RAM cao
   - alert: HighMemoryUsage
     expr: (container_memory_usage_bytes{container_name="todo-app-frontend"} / 256000000) * 100 > 80
     for: 1m
@@ -10,11 +12,52 @@ groups:
       summary: "RAM App Todo sắp đầy!"
       description: "App Todo đang dùng hơn 80% RAM định mức (256MB) trong 1 phút."
 
+  # Instance down
   - alert: InstanceDown
     expr: up == 0
     for: 1m
     labels:
       severity: critical
     annotations:
-      summary: "Server sập!"
+      summary: "Service ngừng hoạt động!"
       description: "Dịch vụ {{ $labels.job }} - instance {{ $labels.instance }} đã ngừng hoạt động hơn 1 phút."
+
+  # CPU cao trên VM
+  - alert: HighCPUUsage
+    expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 85
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "CPU cao!"
+      description: "Instance {{ $labels.instance }} đang dùng hơn 85% CPU trong 2 phút."
+
+  # Disk sắp đầy
+  - alert: DiskSpaceLow
+    expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Disk sắp đầy!"
+      description: "Instance {{ $labels.instance }} còn dưới 15% dung lượng disk."
+
+  # Backend trả 5xx nhiều
+  - alert: HighErrorRate
+    expr: rate(nginx_http_requests_total{status=~"5.."}[5m]) > 0.1
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Tỉ lệ lỗi 5xx cao!"
+      description: "Backend đang trả về lỗi 5xx với tốc độ {{ $value }} req/s trong 2 phút."
+
+  # Request rate bất thường (có thể đang bị DDoS)
+  - alert: AbnormalRequestRate
+    expr: rate(nginx_http_requests_total[1m]) > 100
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Request rate bất thường!"
+      description: "Instance {{ $labels.instance }} đang nhận hơn 100 req/s - có thể đang bị tấn công."
