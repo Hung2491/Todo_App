@@ -55,7 +55,7 @@ services:
     container_name: grafana
     # Chỉ bind localhost, không expose ra 0.0.0.0
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
     networks:
