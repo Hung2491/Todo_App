@@ -23,11 +23,6 @@ RUN npm ci --omit=dev
 # Copy compiled JS from builder stage
 COPY --from=builder /app/dist ./dist
 
-# Copy seed files (optional, for seeding data)
-# seed.js không còn tồn tại nên tạm thời comment lại để docker build không bị lỗi
-# COPY seed.js ./
-# COPY seed-data.json ./
-
 # Expose application port
 EXPOSE 8000
 
