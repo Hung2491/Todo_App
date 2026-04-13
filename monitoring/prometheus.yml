@@ -15,7 +15,7 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # VM1 - Load Balancer
+  # VM1 - Load Balancer + Monitor
   - job_name: 'node-exporter-vm1'
     static_configs:
       - targets: ['node-exporter:9100']
@@ -30,7 +30,7 @@ scrape_configs:
           vm: 'vm1'
           role: 'loadbalancer'
 
-  # VM2 - Backend
+  # VM2 - Backend + Mongo Secondary
   - job_name: 'node-exporter-vm2'
     static_configs:
       - targets: ['${VM2_PRIVATE_IP}:9100']
@@ -52,7 +52,7 @@ scrape_configs:
           vm: 'vm2'
           role: 'backend'
 
-  # VM3 - Backend
+  # VM3 - Backend + Mongo Secondary
   - job_name: 'node-exporter-vm3'
     static_configs:
       - targets: ['${VM3_PRIVATE_IP}:9100']
@@ -74,7 +74,7 @@ scrape_configs:
           vm: 'vm3'
           role: 'backend'
 
-  # VM4 - MongoDB Primary (nếu có node-exporter)
+  # VM4 - MongoDB Primary
   - job_name: 'node-exporter-vm4'
     static_configs:
       - targets: ['${VM4_PRIVATE_IP}:9100']
