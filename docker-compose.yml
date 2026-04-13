@@ -32,8 +32,8 @@ services:
       - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml   # fix: tên file đồng nhất
       - prometheus_data:/prometheus
     # Chỉ expose nội bộ, không ra ngoài internet
-    expose:
-      - "9090"
+    ports:
+      - "9090:9090"
     networks:
       - todo-network
     restart: always
