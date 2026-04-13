@@ -13,8 +13,7 @@ jobs:
 
       - name: Create .env for build
         run: |
-          echo "${{ secrets.ENV_FILE_VM2 }}" > .env
-          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -35,20 +34,18 @@ jobs:
 
       - name: Tạo .env VM1
         run: |
-          echo "VM_PUBLIC_IP=${{ secrets.VM1_PUBLIC_IP }}" >> .env
+          echo "VM_PUBLIC_IP=${{ secrets.VM1_PUBLIC_IP }}" > .env
 
-      - name: Generate prometheus.yml
+      - name: Generate Monitoring Configs
         run: |
           export VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}
           export VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}
           export VM4_PRIVATE_IP=${{ secrets.VM4_PRIVATE_IP }}
-          envsubst < monitoring/prometheus.yml > monitoring/prometheus.tmp.yml
-          mv monitoring/prometheus.tmp.yml monitoring/prometheus.yml
-
-      - name: Generate alertmanager.yml
-        run: |
           export TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
           export TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          
+          envsubst < monitoring/prometheus.yml > monitoring/prometheus.tmp.yml
+          mv monitoring/prometheus.tmp.yml monitoring/prometheus.yml
           envsubst < monitoring/alertmanager.yml > monitoring/alertmanager.tmp.yml
           mv monitoring/alertmanager.tmp.yml monitoring/alertmanager.yml
 
@@ -75,66 +72,47 @@ jobs:
             docker compose up -d --force-recreate --remove-orphans
             docker image prune -f
 
-  deploy-vm2:
+  deploy-workers:
     runs-on: ubuntu-latest
     needs: build-and-push
+    strategy:
+      matrix:
+        worker: [vm2, vm3]
+        include:
+          - worker: vm2
+            host: VM2_HOST
+            key: VM2_SSH_KEY
+            env: ENV_FILE_VM2 # Gọi đúng tên Secret ông đang có
+          - worker: vm3
+            host: VM3_HOST
+            key: VM3_SSH_KEY
+            env: ENV_FILE_VM3 # Gọi đúng tên Secret ông đang có
     steps:
       - uses: actions/checkout@v4
 
-      - name: Tạo .env VM2
+      - name: Tạo .env cho ${{ matrix.worker }}
         run: |
-          echo "${{ secrets.ENV_FILE_VM2 }}" > .env
+          # Dùng cat EOF để giữ nguyên định dạng nhiều dòng của Secret
+          cat << EOF > .env
+          ${{ secrets[matrix.env] }}
+          EOF
 
-      - name: Copy files lên VM2
+      - name: Copy files lên ${{ matrix.worker }}
         uses: appleboy/scp-action@master
         with:
-          host: ${{ secrets.VM2_HOST }}
+          host: ${{ secrets[matrix.host] }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.VM2_SSH_KEY }}
+          key: ${{ secrets[matrix.key] }}
           port: ${{ secrets.SERVER_PORT }}
-          source: ".env"
+          source: "docker-compose.yml,.env"
           target: "~/project/Todo_App"
 
-      - name: Deploy VM2
+      - name: Deploy ${{ matrix.worker }}
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.VM2_HOST }}
+          host: ${{ secrets[matrix.host] }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.VM2_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT }}
-          script: |
-            cd ~/project/Todo_App/
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            docker compose pull
-            docker compose up -d --force-recreate --remove-orphans
-            docker image prune -f
-
-  deploy-vm3:
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Tạo .env VM3
-        run: |
-          echo "${{ secrets.ENV_FILE_VM3 }}" > .env
-
-      - name: Copy files lên VM3
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.VM3_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.VM3_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT }}
-          source: ".env"
-          target: "~/project/Todo_App"
-
-      - name: Deploy VM3
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.VM3_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.VM3_SSH_KEY }}
+          key: ${{ secrets[matrix.key] }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
             cd ~/project/Todo_App/
