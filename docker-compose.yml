@@ -60,7 +60,7 @@ services:
     restart: always
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    image: gcr.io/cadvisor/cadvisor:v0.47.0 # Khuyên dùng bản v0.47.0 ổn định hơn cho Docker hiện tại
     container_name: cadvisor
     restart: always
     privileged: true
@@ -68,14 +68,15 @@ services:
       - /dev/kmsg
     volumes:
       - /:/rootfs:ro
-      - /var/run:/var/run:rw
+      - /var/run:/var/run:ro # Chỉ cần ro là đủ
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro # BẮT BUỘC để fix lỗi cgroup v2
     command:
       - '--docker_only=true'
-      - '--store_container_labels=false'
-      - '--disable_metrics=advtcp,cpuLoad,cpu_topology,diskIO,hugetlb,memory_numa,percpu,perf_event,process,referenced_memory,resctrl,sched,tcp,udp'
+      - '--housekeeping_interval=10s'
+      - '--allow_dynamic_housekeeping=true'
     ports:
       - "8080:8080"
     networks:
