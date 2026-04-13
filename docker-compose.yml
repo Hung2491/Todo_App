@@ -60,20 +60,17 @@ services:
     restart: always
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
-    restart: always
+    restart: unless-stopped
     privileged: true
-    devices:
-      - /dev/kmsg
+    ports:
+      - "8080:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro   # FIX: cần để đọc container đang chạy
       - /sys:/sys:ro
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro               # FIX: bắt buộc cho cgroup v2
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
+      - /dev/disk:/dev/disk:ro
     command:
       - '--docker_only=true'
       - '--housekeeping_interval=10s'
