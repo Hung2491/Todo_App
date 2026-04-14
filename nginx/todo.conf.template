@@ -73,6 +73,12 @@ server {
         index index.html;
         try_files $uri $uri/ /index.html;
 
+        location = /index.html {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        expires 0;
+    }
+
         location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf)$ {
             expires 7d;
             add_header Cache-Control "public, no-transform";
@@ -80,11 +86,7 @@ server {
         }
     }
 
-    location = /index.html {
-        add_header Cache-Control "no-cache, no-store, must-revalidate";
-        add_header Pragma "no-cache";
-        expires 0;
-    }
+    
 
     # ── API proxy ─────────────────────────────────────────────────────────
     location /tasks {
