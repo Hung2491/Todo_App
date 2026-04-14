@@ -80,6 +80,12 @@ server {
         }
     }
 
+    location = /index.html {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        expires 0;
+    }
+
     # ── API proxy ─────────────────────────────────────────────────────────
     location /tasks {
         limit_req zone=api_limit burst=20 nodelay;
