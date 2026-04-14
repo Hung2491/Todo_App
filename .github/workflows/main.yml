@@ -82,11 +82,11 @@ jobs:
           - worker: vm2
             host: VM2_HOST
             key: VM2_SSH_KEY
-            env: ENV_FILE_VM2 # Gọi đúng tên Secret ông đang có
+            env: ENV_FILE_VM2 
           - worker: vm3
             host: VM3_HOST
             key: VM3_SSH_KEY
-            env: ENV_FILE_VM3 # Gọi đúng tên Secret ông đang có
+            env: ENV_FILE_VM3 
     steps:
       - uses: actions/checkout@v4
 
