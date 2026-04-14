@@ -15,7 +15,7 @@ services:
     environment:
       - VM2_PRIVATE_IP=${VM2_PRIVATE_IP}
       - VM3_PRIVATE_IP=${VM3_PRIVATE_IP}
-      - VM_PUBLIC_IP=${VM_PUBLIC_IP}
+      - VM_PUBLIC_IP=${VM1_PUBLIC_IP}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost/health > /dev/null || exit 1"]
       interval: 30s
