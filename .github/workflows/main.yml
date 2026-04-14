@@ -56,7 +56,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.VM1_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "docker-compose.yml,.env,nginx/,monitoring/"
+          source: "/FE-Todo,docker-compose.yml,.env,nginx/,monitoring/"
           target: "~/project/Todo_App"
 
       - name: Deploy VM1
@@ -104,7 +104,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets[matrix.key] }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "docker-compose.yml,.env"
+          source: "/BE-Todo,.env"
           target: "~/project/Todo_App"
 
       - name: Deploy ${{ matrix.worker }}
