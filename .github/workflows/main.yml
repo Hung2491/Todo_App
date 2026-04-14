@@ -34,7 +34,7 @@ jobs:
 
       - name: Tạo .env VM1
         run: |
-          echo "VM_PUBLIC_IP=${{ secrets.VM1_PUBLIC_IP }}" > .env
+          echo "${{ secrets.ENV_FILE_VM1 }}" > .env
 
       - name: Generate Monitoring Configs
         run: |
