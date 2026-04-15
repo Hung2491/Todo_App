@@ -5,6 +5,8 @@ import express from "express";
 import mongoose from "mongoose";
 import taskRoutes from "./routes/taskRoutes";
 import cors from "cors";
+import logger from "./utils/logger";
+import { httpLogger } from "./middlewares/httpLogger";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -18,6 +20,9 @@ app.use(
   })
 );
 
+// HTTP Request Logger (phải đặt trước routes)
+app.use(httpLogger);
+
 // Middleware để parse body JSON và form-urlencoded
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -25,13 +30,16 @@ app.use(express.urlencoded({ extended: true }));
 // Kết nối MongoDB
 mongoose
   .connect(MONGO_URI)
-  .then(() => console.log("✅ Connected to MongoDB"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+  .then(() => logger.info("✅ Connected to MongoDB", { uri: MONGO_URI.replace(/:\/\/.*@/, "://***@") }))
+  .catch((err) => logger.error("❌ MongoDB connection error", { error: err.message }));
 
 // Routes
 app.use("/tasks", taskRoutes);
 
 // Khởi động server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  logger.info(`🚀 Server running on http://localhost:${PORT}`, {
+    port: PORT,
+    env: process.env.NODE_ENV || "development",
+  });
 });

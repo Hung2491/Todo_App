@@ -1,11 +1,14 @@
 import { Request, Response } from 'express';
 import Task, { ITask } from '../models/Task';
+import logger from '../utils/logger';
 
 export const getAllTasks = async (req: Request, res: Response) => {
   try {
     const tasks = await Task.find();
+    logger.info('Fetched all tasks', { count: tasks.length });
     res.json(tasks);
   } catch (error) {
+    logger.error('Failed to fetch tasks', { error: (error as Error).message });
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -13,14 +16,15 @@ export const getAllTasks = async (req: Request, res: Response) => {
 export const createTask = async (req: Request, res: Response) => {
   try {
     const { title, comment, tag, date, completed } = req.body;
-    // if (!title || !comment || !tag || !date || completed === undefined) {
-    //   return res.status(400).json({ error: 'All fields are required' });
-    // }
     const newTask = new Task({ title, comment, tag, date, completed });
     await newTask.save();
+    logger.info('Task created', { id: String(newTask._id), title: newTask.title });
     res.status(201).json(newTask);
   } catch (error) {
-    console.log(error)
+    logger.error('Failed to create task', {
+      error: (error as Error).message,
+      body: req.body,
+    });
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -35,10 +39,13 @@ export const updateTask = async (req: Request, res: Response) => {
       { new: true, runValidators: true }
     );
     if (!updatedTask) {
+      logger.warn('Task not found for update', { id });
       return res.status(404).json({ error: 'Task not found' });
     }
+    logger.info('Task updated', { id, title: updatedTask.title });
     res.json(updatedTask);
   } catch (error) {
+    logger.error('Failed to update task', { id: req.params.id, error: (error as Error).message });
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -48,10 +55,13 @@ export const deleteTask = async (req: Request, res: Response) => {
     const { id } = req.params;
     const deletedTask = await Task.findByIdAndDelete(id);
     if (!deletedTask) {
+      logger.warn('Task not found for deletion', { id });
       return res.status(404).json({ error: 'Task not found' });
     }
+    logger.info('Task deleted', { id, title: deletedTask.title });
     res.status(204).send();
   } catch (error) {
+    logger.error('Failed to delete task', { id: req.params.id, error: (error as Error).message });
     res.status(500).json({ error: 'Server error' });
   }
 };
