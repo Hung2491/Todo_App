@@ -68,7 +68,7 @@ server {
 
     # ── Block bad bots & methods (dùng map, tránh if lồng nhau) ──────────
     if ($bad_bot)    { return 403; }
-    if ($request_method !~ ^(GET|POST|PUT|DELETE|OPTIONS)$) { return 405; }
+    if ($request_method !~ ^(GET|POST|PUT|DELETE)$) { return 405; }
 
     # ── Static frontend ───────────────────────────────────────────────────
     location / {
