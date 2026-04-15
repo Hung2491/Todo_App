@@ -21,10 +21,15 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and Push
+      - name: Build and Push Frontend
         run: |
           docker compose -f docker-compose.yml build --no-cache
           docker compose -f docker-compose.yml push
+
+      - name: Build and Push Backend
+        run: |
+          docker compose -f docker-compose.worker.yml build --no-cache backend
+          docker compose -f docker-compose.worker.yml push backend
 
   deploy-vm1:
     runs-on: ubuntu-latest
@@ -68,6 +73,7 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             cd ~/project/Todo_App/
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             docker compose pull
             docker compose up -d --force-recreate --remove-orphans
             docker image prune -f
@@ -92,10 +98,11 @@ jobs:
 
       - name: Tạo .env cho ${{ matrix.worker }}
         run: |
-          # Dùng cat EOF để giữ nguyên định dạng nhiều dòng của Secret
           cat << EOF > .env
           ${{ secrets[matrix.env] }}
           EOF
+          # Đảm bảo DOCKERHUB_USERNAME có trong .env để docker-compose resolve được image name
+          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
 
       - name: Copy files lên ${{ matrix.worker }}
         uses: appleboy/scp-action@master
@@ -104,7 +111,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets[matrix.key] }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "BE-Todo/,.env"
+          source: "BE-Todo/,docker-compose.worker.yml,.env"
           target: "~/project/Todo_App"
 
       - name: Deploy ${{ matrix.worker }}
@@ -117,6 +124,6 @@ jobs:
           script: |
             cd ~/project/Todo_App/
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            docker compose pull
-            docker compose up -d --force-recreate --remove-orphans
+            docker compose -f docker-compose.worker.yml pull
+            docker compose -f docker-compose.worker.yml up -d --force-recreate --remove-orphans
             docker image prune -f

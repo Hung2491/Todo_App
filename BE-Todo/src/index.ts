@@ -33,6 +33,11 @@ mongoose
   .then(() => logger.info("✅ Connected to MongoDB", { uri: MONGO_URI.replace(/:\/\/.*@/, "://***@") }))
   .catch((err) => logger.error("❌ MongoDB connection error", { error: err.message }));
 
+// Health check endpoint (dùng cho Docker healthcheck)
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 // Routes
 app.use("/tasks", taskRoutes);
 
