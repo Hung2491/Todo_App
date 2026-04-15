@@ -1,9 +1,18 @@
 route:
-  group_by: ['alertname']
-  group_wait: 10s      
-  group_interval: 1m     
-  repeat_interval: 1h    
+  group_by: ['alertname', 'vm']   # nhóm theo VM để tránh gom nhầm nhiều VM
+  group_wait: 30s
+  group_interval: 5m              # tăng từ 1m → 5m, giảm spam khi group thay đổi
+  repeat_interval: 4h             # tăng từ 1h → 4h, alert vẫn firing mới gửi lại
   receiver: 'telegram-notifications'
+
+# ─── Inhibit Rules ────────────────────────────────────────────────────────────
+# Khi InstanceDown đang fire, KHÔNG gửi thêm các alert con của cùng instance đó
+inhibit_rules:
+  - source_matchers:
+      - alertname = "InstanceDown"
+    target_matchers:
+      - alertname =~ "HighCPUUsage|HighMemoryUsage|DiskSpaceLow|AbnormalRequestRate"
+    equal: ['instance']
 
 receivers:
 - name: 'telegram-notifications'
@@ -18,6 +27,7 @@ receivers:
       {{ range .Alerts }}
       <b>Alert:</b> {{ .Labels.alertname }}
       <b>Severity:</b> {{ .Labels.severity }}
+      <b>VM:</b> {{ .Labels.vm | default "N/A" }}
       <b>Mô tả:</b> {{ .Annotations.description }}
       <b>Thời gian:</b> {{ .StartsAt.Format "2006-01-02 15:04:05" }} UTC
       {{ end }}

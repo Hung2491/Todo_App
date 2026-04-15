@@ -4,7 +4,7 @@ groups:
 
   - alert: InstanceDown
     expr: up == 0
-    for: 30s    # giảm từ 1m xuống 30s
+    for: 1m    # tăng từ 30s → 1m, tránh false positive khi scrape tạm thời lỗi
     labels:
       severity: critical
     annotations:
@@ -38,14 +38,20 @@ groups:
       summary: "Disk sắp đầy!"
       description: "Instance {{ $labels.instance }} còn dưới 15% dung lượng disk."
 
+  # ─── ContainerDown: chỉ fire khi cAdvisor đang UP nhưng container thực sự không chạy ─────
+  # Dùng 'and on()' để đảm bảo cAdvisor VM1 đang hoạt động trước khi kiểm tra absent()
+  # Tránh phantom alert khi cAdvisor bị restart hoặc chưa kịp scrape metrics
   - alert: ContainerDown
-    expr: absent(container_memory_usage_bytes{name="todo-app-frontend"})
-    for: 1m
+    expr: >
+      (up{job="cadvisor-vm1"} == 1)
+      and on()
+      absent(container_memory_usage_bytes{name="todo-app-frontend"})
+    for: 2m    # tăng từ 1m → 2m, tránh fire khi container đang restart
     labels:
       severity: critical
     annotations:
       summary: "Container frontend down!"
-      description: "Container todo-app-frontend không còn chạy trên VM1."
+      description: "Container todo-app-frontend không còn chạy trên VM1 (đã xác nhận cAdvisor đang hoạt động)."
 
   - alert: AbnormalRequestRate
     expr: rate(node_network_receive_packets_total{job="node-exporter-vm1",device!="lo"}[1m]) > 10000
