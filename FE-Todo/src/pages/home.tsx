@@ -29,7 +29,7 @@ const TAGS = [
   },
   {
     icon: <WorkIcon sx={{ color: "#46cf8b", mb: 1 }} />,
-    tag: "Works",
+    tag: "Work",
     color: "#edfaf3",
     iconColor: "#46cf8b",
   },
