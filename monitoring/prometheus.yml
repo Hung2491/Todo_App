@@ -25,7 +25,9 @@ scrape_configs:
 
   - job_name: 'cadvisor-vm1'
     static_configs:
-      - targets: ['${VM1_PRIVATE_IP}:8080']
+      # Prometheus và cAdvisor cùng chạy trên VM1 trong cùng Docker network
+      # dùng service name thay vì IP (nhất quán với node-exporter-vm1)
+      - targets: ['cadvisor:8080']
         labels:
           vm: 'vm1'
           role: 'loadbalancer'

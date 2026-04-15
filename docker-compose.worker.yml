@@ -60,6 +60,26 @@ services:
     networks:
       - todo-network
 
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    command:
+      - '--docker_only=true'
+      - '--housekeeping_interval=10s'
+      - '--allow_dynamic_housekeeping=true'
+    ports:
+      - "8080:8080"
+    networks:
+      - todo-network
+
 networks:
   todo-network:
     driver: bridge
