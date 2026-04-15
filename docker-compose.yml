@@ -2,6 +2,9 @@ services:
 
   frontend:
     image: ${DOCKERHUB_USERNAME}/todo-app-frontend:latest
+    build:
+      context: ./FE-Todo
+      dockerfile: Dockerfile
     container_name: todo-app-frontend
     restart: always
     ports:
