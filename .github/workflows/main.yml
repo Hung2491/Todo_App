@@ -100,12 +100,12 @@ jobs:
       - name: Sync toàn bộ project vào thư mục deploy
         run: |
           mkdir -p ~/project/Todo_App
-          rsync -av --delete . ~/project/Todo_App/   # sync toàn bộ repo (bao gồm monitoring, nginx, docker-compose...)
+          rsync -av --delete . ~/project/Todo_App/   
 
       - name: Tạo file .env từ GitHub Secret cho ${{ matrix.vm }}
         working-directory: ~/project/Todo_App
         run: |
-          cat << 'ENVEOF' > .env
+          cat << 'ENVEOF' > ~/project/Todo_App/.env
           ${{ secrets[matrix.env] }}
           ENVEOF
 
