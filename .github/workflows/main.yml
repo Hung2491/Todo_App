@@ -93,7 +93,11 @@ jobs:
     runs-on: ${{ fromJson(matrix.runs_on) }}
     steps:
       - uses: actions/checkout@v4
-      
+      - name: Ensure latest code
+        run: |
+          git fetch --all
+          git reset --hard origin/${{ github.ref_name }}
+          git clean -fd
       - name: Tạo .env cho ${{ matrix.vm }}
         run: |
           cat << 'ENVEOF' > .env
