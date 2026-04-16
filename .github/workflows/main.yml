@@ -93,7 +93,7 @@ jobs:
     runs-on: ${{ fromJson(matrix.runs_on) }}
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Tạo .env cho ${{ matrix.vm }}
         run: |
           cat << 'ENVEOF' > .env
@@ -101,7 +101,12 @@ jobs:
           ENVEOF
           # Đảm bảo DOCKERHUB_USERNAME có trong .env để image name resolve được
           echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
-
+          
+      - name: Fix mongo-keyfile permission  
+        run: |
+          chmod 400 mongo-keyfile
+          sudo chown 999:999 mongo-keyfile
+    
       - name: Deploy ${{ matrix.vm }}
         run: |
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
