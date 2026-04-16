@@ -31,13 +31,19 @@ services:
              --bind_ip_all
     ports:
       - "27017:27017"
+    environment:
+      - MONGO_USER=${MONGO_USER}
+      - MONGO_PASSWORD=${MONGO_PASSWORD}
     volumes:
       - mongo_data:/data/db
       - ./mongo-keyfile:/etc/mongo-keyfile:ro
     networks:
       - todo-network
     healthcheck:
-      test: [ "CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok" ]
+      test: [
+        "CMD-SHELL",
+        "mongosh --quiet -u $$MONGO_USER -p $$MONGO_PASSWORD --authenticationDatabase admin --eval \"db.adminCommand('ping').ok\" || exit 1"
+      ]
       interval: 15s
       timeout: 5s
       retries: 5

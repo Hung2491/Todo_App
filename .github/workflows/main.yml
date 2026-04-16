@@ -42,13 +42,13 @@ jobs:
           echo "${{ secrets.ENV_FILE_VM1 }}" > .env
 
       - name: Generate Monitoring Configs
+        env:
+          VM2_PRIVATE_IP: ${{ secrets.VM2_PRIVATE_IP }}
+          VM3_PRIVATE_IP: ${{ secrets.VM3_PRIVATE_IP }}
+          VM4_PRIVATE_IP: ${{ secrets.VM4_PRIVATE_IP }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          export VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}
-          export VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}
-          export VM4_PRIVATE_IP=${{ secrets.VM4_PRIVATE_IP }}
-          export TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
-          export TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
-          
           envsubst < monitoring/prometheus.yml > monitoring/prometheus.tmp.yml
           mv monitoring/prometheus.tmp.yml monitoring/prometheus.yml
           envsubst < monitoring/alertmanager.yml > monitoring/alertmanager.tmp.yml
