@@ -93,14 +93,6 @@ jobs:
     runs-on: ${{ fromJson(matrix.runs_on) }}
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Ensure latest code
-        run: | 
-          cd ~/project/Todo_App
-          git fetch --all
-          git reset --hard origin/${{ github.ref_name }}
-          git clean -fd
-
       - name: Sync config files
         run: |
           rsync -av --delete monitoring/ ~/project/Todo_App/monitoring/
