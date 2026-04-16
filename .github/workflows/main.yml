@@ -103,13 +103,11 @@ jobs:
           rsync -av --delete . ~/project/Todo_App/   
 
       - name: Tạo file .env từ GitHub Secret cho ${{ matrix.vm }}
-        working-directory: ~/project/Todo_App
         run: |
           cat << 'ENVEOF' > ~/project/Todo_App/.env
           ${{ secrets[matrix.env] }}
           ENVEOF
 
-          # Thêm các biến chung cần thiết
           echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
           echo "VM_NAME=${{ matrix.vm }}" >> .env
 
