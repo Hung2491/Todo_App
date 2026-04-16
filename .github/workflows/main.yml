@@ -116,8 +116,8 @@ jobs:
       - name: Fix mongo-keyfile permission
         run: |
           echo "${{ secrets.MONGO_KEYFILE }}" > ~/project/Todo_App/mongo-keyfile
-          chmod 400 mongo-keyfile
-          sudo chown 999:999 mongo-keyfile || true
+          chmod 400 ~/project/Todo_App/mongo-keyfile
+          sudo chown 999:999 ~/project/Todo_App/mongo-keyfile || true
           echo "✅ mongo-keyfile permission fixed"
     
       - name: Deploy ${{ matrix.vm }}
