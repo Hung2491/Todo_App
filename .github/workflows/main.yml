@@ -104,6 +104,7 @@ jobs:
           
       - name: Fix mongo-keyfile permission  
         run: |
+          echo "${{ secrets.MONGO_KEYFILE }}" > mongo-keyfile
           chmod 400 mongo-keyfile
           sudo chown 999:999 mongo-keyfile
     
