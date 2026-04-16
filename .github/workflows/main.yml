@@ -114,9 +114,8 @@ jobs:
           echo "✅ Đã tạo file .env cho ${{ matrix.vm }}"
 
       - name: Fix mongo-keyfile permission
-        working-directory: ~/project/Todo_App
         run: |
-          echo "${{ secrets.MONGO_KEYFILE }}" > mongo-keyfile
+          echo "${{ secrets.MONGO_KEYFILE }}" > ~/project/Todo_App/mongo-keyfile
           chmod 400 mongo-keyfile
           sudo chown 999:999 mongo-keyfile || true
           echo "✅ mongo-keyfile permission fixed"
