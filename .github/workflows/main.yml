@@ -95,6 +95,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Sync toàn bộ project vào thư mục deploy
+        run: |
+          mkdir -p ~/project/Todo_App
+          rsync -av --delete . ~/project/Todo_App/
+      
       - name: Tạo file .env từ GitHub Secret cho ${{ matrix.vm }}
         run: |
           cat << 'ENVEOF' > .env
@@ -107,11 +112,10 @@ jobs:
 
       - name: Fix mongo-keyfile permission
         run: |
-          echo "${{ secrets.MONGO_KEYFILE }}" | base64 -d > mongo-keyfile
-          chmod 400 mongo-keyfile
-          sudo chown 999:999 mongo-keyfile || true
-          echo "✅ mongo-keyfile permission fixed"
-
+          echo "${{ secrets.MONGO_KEYFILE }}" | base64 -d > ~/project/Todo_App/mongo-keyfile
+          
+          chmod 400 ~/project/Todo_App/mongo-keyfile
+          sudo chown 999:999 ~/project/Todo_App/mongo-keyfile || true
       - name: Deploy ${{ matrix.vm }}
         run: |
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
