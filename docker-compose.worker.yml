@@ -32,7 +32,7 @@ services:
     ports:
       - "27017:27017"
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}      # ← đổi tên biến
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
     volumes:
       - mongo_data:/data/db
@@ -40,10 +40,7 @@ services:
     networks:
       - todo-network
     healthcheck:
-      test: [
-        "CMD-SHELL",
-        "mongosh --quiet -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval \"db.adminCommand('ping').ok\" || exit 1"
-      ]
+      test: [ "CMD-SHELL", "mongosh --quiet -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval \"db.adminCommand('ping').ok\" || exit 1" ]
       interval: 15s
       timeout: 10s
       retries: 5
