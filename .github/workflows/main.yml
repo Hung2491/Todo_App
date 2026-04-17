@@ -33,16 +33,30 @@ jobs:
           docker compose -f docker-compose.worker.yml push backend
 
 
-  # ================= DEPLOY VM1 =================
-  deploy-vm1:
+  # ================= DEPLOY VM1 + VM5 =================
+  deploy-frontend:
     runs-on: ubuntu-latest
     needs: build-and-push
+
+    strategy:
+      matrix:
+        include:
+          - name: vm1
+            host: VM1_HOST
+            key: VM1_SSH_KEY
+            env: ENV_FILE_VM
+
+          - name: vm5
+            host: VM5_HOST
+            key: VM5_SSH_KEY
+            env: ENV_FILE_VM
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Tạo .env VM1
+      - name: Create .env
         run: |
-          echo "${{ secrets.ENV_FILE_VM }}" > .env
+          echo "${{ secrets[matrix.env] }}" > .env
 
       - name: Generate Monitoring Configs
         env:
@@ -58,84 +72,35 @@ jobs:
           envsubst < monitoring/alertmanager.yml > monitoring/alertmanager.yml.tmp
           mv monitoring/alertmanager.yml.tmp monitoring/alertmanager.yml
 
-      - name: Copy files lên VM1
+      - name: Copy files
         uses: appleboy/scp-action@master
         with:
-          host: ${{ secrets.VM1_HOST }}
+          host: ${{ secrets[matrix.host] }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.VM1_SSH_KEY }}
+          key: ${{ secrets[matrix.key] }}
           port: ${{ secrets.SERVER_PORT }}
           source: "FE-Todo/,docker-compose.yml,.env,nginx/,monitoring/"
           target: "~/project/Todo_App"
 
-      - name: Deploy VM1
+      - name: Deploy ${{ matrix.name }}
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.VM1_HOST }}
+          host: ${{ secrets[matrix.host] }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.VM1_SSH_KEY }}
+          key: ${{ secrets[matrix.key] }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
             cd ~/project/Todo_App
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
             docker compose down
             docker compose pull
             docker compose up -d --force-recreate --remove-orphans
+
             docker image prune -f
 
 
-  # ================= DEPLOY VM5 =================
-  deploy-vm5:
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Tạo .env VM5
-        run: |
-          echo "${{ secrets.ENV_FILE_VM }}" > .env
-
-      - name: Generate Monitoring Configs
-        env:
-          VM2_PRIVATE_IP: ${{ secrets.VM2_PRIVATE_IP }}
-          VM3_PRIVATE_IP: ${{ secrets.VM3_PRIVATE_IP }}
-          VM4_PRIVATE_IP: ${{ secrets.VM4_PRIVATE_IP }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: |
-          envsubst < monitoring/prometheus.yml > monitoring/prometheus.yml.tmp
-          mv monitoring/prometheus.yml.tmp monitoring/prometheus.yml
-
-          envsubst < monitoring/alertmanager.yml > monitoring/alertmanager.yml.tmp
-          mv monitoring/alertmanager.yml.tmp monitoring/alertmanager.yml
-
-      - name: Copy files lên VM5
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.VM5_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.VM5_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT }}
-          source: "FE-Todo/,docker-compose.yml,.env,nginx/,monitoring/"
-          target: "~/project/Todo_App"
-
-      - name: Deploy VM5
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.VM5_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.VM5_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT }}
-          script: |
-            cd ~/project/Todo_App
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            docker compose down
-            docker compose pull
-            docker compose up -d --force-recreate --remove-orphans
-            docker image prune -f
-
-
-  # ================= DEPLOY WORKERS =================
+  # ================= DEPLOY WORKERS (VM2 + VM3) =================
   deploy-workers:
     needs: build-and-push
     strategy:
