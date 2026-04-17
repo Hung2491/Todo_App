@@ -92,30 +92,30 @@ jobs:
     # Runner chạy trực tiếp trên VM2/VM3 — không cần SSH key hay SCP
     runs-on: ${{ fromJson(matrix.runs_on) }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
+      - name: Update project source
+        run: |
+          cd ~/project/Todo_App
+          git fetch --all
+          git reset --hard origin/${{ github.ref_name }}
+          git clean -fd
       - name: Sync toàn bộ project vào thư mục deploy
         run: |
           mkdir -p ~/project/Todo_App
           rsync -av --delete . ~/project/Todo_App/
       
-      - name: Tạo file .env từ GitHub Secret cho ${{ matrix.vm }}
+      - name: Create .env
         run: |
-          cat << 'ENVEOF' > .env
+          cat << 'ENVEOF' > ~/project/Todo_App/.env
           ${{ secrets[matrix.env] }}
           ENVEOF
+          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> ~/project/Todo_App/.env
 
-          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
-          echo "VM_NAME=${{ matrix.vm }}" >> .env
-          echo "✅ Đã tạo file .env cho ${{ matrix.vm }}"
-
-      - name: Fix mongo-keyfile permission
+      - name: Setup mongo keyfile
         run: |
-          echo "${{ secrets.MONGO_KEYFILE }}" | base64 -d > ~/project/Todo_App/mongo-keyfile
-          
+          echo "${{ secrets.MONGO_KEYFILE }}" > ~/project/Todo_App/mongo-keyfile
           chmod 400 ~/project/Todo_App/mongo-keyfile
-          sudo chown 999:999 ~/project/Todo_App/mongo-keyfile || true
+          sudo chown 999:999 ~/project/Todo_App/mongo-keyfile
       - name: Deploy ${{ matrix.vm }}
         run: |
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
