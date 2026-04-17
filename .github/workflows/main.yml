@@ -99,10 +99,6 @@ jobs:
           git fetch --all
           git reset --hard origin/${{ github.ref_name }}
           git clean -fd
-      - name: Sync toàn bộ project vào thư mục deploy
-        run: |
-          mkdir -p ~/project/Todo_App
-          rsync -av --delete . ~/project/Todo_App/
       
       - name: Create .env
         run: |
