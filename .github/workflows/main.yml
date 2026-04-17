@@ -108,19 +108,20 @@ jobs:
           ${{ secrets[matrix.env] }}
           ENVEOF
 
-          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
-          echo "VM_NAME=${{ matrix.vm }}" >> .env
+          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> ~/project/Todo_App/.env
+          echo "VM_NAME=${{ matrix.vm }}" >> ~/project/Todo_App/.env
 
           echo "✅ Đã tạo file .env cho ${{ matrix.vm }}"
 
       - name: Fix mongo-keyfile permission
         run: |
-          echo "${{ secrets.MONGO_KEYFILE }}" > ~/project/Todo_App/mongo-keyfile
+          echo "${{ secrets.MONGO_KEYFILE }}" | base64 -d > ~/project/Todo_App/mongo-keyfile
           chmod 400 ~/project/Todo_App/mongo-keyfile
           sudo chown 999:999 ~/project/Todo_App/mongo-keyfile || true
           echo "✅ mongo-keyfile permission fixed"
     
       - name: Deploy ${{ matrix.vm }}
+        working-directory: ~/project/Todo_App
         run: |
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
           docker compose -f docker-compose.worker.yml pull
