@@ -42,7 +42,7 @@ jobs:
 
       - name: Tạo .env VM1
         run: |
-          echo "${{ secrets.ENV_FILE_VM1 }}" > .env
+          echo "${{ secrets.ENV_FILE_VM }}" > .env
 
       - name: Generate Monitoring Configs
         env:
@@ -93,7 +93,7 @@ jobs:
 
       - name: Tạo .env VM5
         run: |
-          echo "${{ secrets.ENV_FILE_VM5 }}" > .env
+          echo "${{ secrets.ENV_FILE_VM }}" > .env
 
       - name: Generate Monitoring Configs
         env:
@@ -143,10 +143,10 @@ jobs:
         include:
           - vm: vm2
             runs_on: '["self-hosted","linux","vm2"]'
-            env: ENV_FILE_VM2
+            env: ENV_FILE_VM
           - vm: vm3
             runs_on: '["self-hosted","linux","vm3"]'
-            env: ENV_FILE_VM3   # 🔥 FIX: trước mày bị nhầm VM2
+            env: ENV_FILE_VM
 
     runs-on: ${{ fromJson(matrix.runs_on) }}
 
