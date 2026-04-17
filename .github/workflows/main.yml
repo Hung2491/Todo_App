@@ -88,7 +88,7 @@ jobs:
             env: ENV_FILE_VM2
           - vm: vm3
             runs_on: '["self-hosted","linux","vm3"]'
-            env: ENV_FILE_VM3
+            env: ENV_FILE_VM2
     # Runner chạy trực tiếp trên VM2/VM3 — không cần SSH key hay SCP
     runs-on: ${{ fromJson(matrix.runs_on) }}
     steps:
