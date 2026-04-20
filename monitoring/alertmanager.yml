@@ -23,11 +23,12 @@ receivers:
     send_resolved: true
     parse_mode: 'HTML'
     message: |
+      message: |
       <b>{{ if eq .Status "firing" }}🔥 CẢNH BÁO{{ else }}✅ ĐÃ PHỤC HỒI{{ end }}</b>
       {{ range .Alerts }}
       <b>Alert:</b> {{ .Labels.alertname }}
       <b>Severity:</b> {{ .Labels.severity }}
-      <b>VM:</b> {{ .Labels.vm | default "N/A" }}
+      <b>VM:</b> {{ if .Labels.vm }}{{ .Labels.vm }}{{ else }}N/A{{ end }}
       <b>Mô tả:</b> {{ .Annotations.description }}
       <b>Thời gian:</b> {{ .StartsAt.Format "2006-01-02 15:04:05" }} UTC
       {{ end }}
