@@ -37,7 +37,11 @@ import { metricsRegister } from "./utils/metrics";
 
 // Health check endpoint (dùng cho Docker healthcheck)
 app.get("/health", (_req, res) => {
-  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  res.status(200).json({ 
+    status: "ok", 
+    message: "CI/CD Pipeline is working perfectly!", 
+    timestamp: new Date().toISOString() 
+  });
 });
 
 // Prometheus metrics endpoint
