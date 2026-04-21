@@ -33,9 +33,21 @@ mongoose
   .then(() => logger.info("✅ Connected to MongoDB", { uri: MONGO_URI.replace(/:\/\/.*@/, "://***@") }))
   .catch((err) => logger.error("❌ MongoDB connection error", { error: err.message }));
 
+import { metricsRegister } from "./utils/metrics";
+
 // Health check endpoint (dùng cho Docker healthcheck)
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// Prometheus metrics endpoint
+app.get("/metrics", async (_req, res) => {
+  try {
+    res.set("Content-Type", metricsRegister.contentType);
+    res.end(await metricsRegister.metrics());
+  } catch (ex) {
+    res.status(500).end(ex);
+  }
 });
 
 // Routes
