@@ -20,7 +20,7 @@ services:
       - VM3_PRIVATE_IP=${VM3_PRIVATE_IP}
       - VM_PUBLIC_IP=${VM_PUBLIC_IP}
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost/health > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://localhost/health > /dev/null || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
