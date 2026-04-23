@@ -25,7 +25,7 @@ services:
       timeout: 5s
       retries: 3
     networks:
-      - frontend-net
+      - todo-networks
 
   prometheus:
     image: prom/prometheus:latest
@@ -37,7 +37,7 @@ services:
     ports:
       - "9090:9090"
     networks:
-      - frontend-net
+      - todo-networks
     restart: always
 
   alertmanager:
@@ -49,7 +49,7 @@ services:
     ports:
       - "9093:9093"
     networks:
-      - frontend-net
+      - todo-networks
 
   grafana:
     image: grafana/grafana:latest
@@ -59,7 +59,7 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
     networks:
-      - frontend-net
+      - todo-networks
     restart: always
 
   cadvisor:
@@ -80,7 +80,7 @@ services:
     ports:
       - "8081:8081"
     networks:
-      - frontend-net
+      - todo-networks
 
   node-exporter:
     image: prom/node-exporter:latest
@@ -97,10 +97,10 @@ services:
     ports:
       - "9100:9100"
     networks:
-      - frontend-net
+      - todo-networks
 
 networks:
-  frontend-net:
+  todo-networks:
     driver: bridge
     ipam:
       driver: default
