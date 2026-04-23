@@ -87,11 +87,6 @@ services:
 networks:
   todo-networks:
     driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.20.2.0/24
-          gateway: 172.20.2.1
 
 volumes:
   mongo_data:
