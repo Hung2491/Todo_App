@@ -14,9 +14,9 @@ services:
       mongo-secondary:
         condition: service_healthy
     networks:
-      - todo-network
+      - backend-net      # chỉ join backend-net
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://localhost:8000/health || exit 1" ]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -38,9 +38,9 @@ services:
       - mongo_data:/data/db
       - ./mongo-keyfile:/etc/mongo-keyfile:ro
     networks:
-      - todo-network
+      - database-net     # chỉ join database-net
     healthcheck:
-      test: [ "CMD-SHELL", "mongosh --quiet -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval \"db.adminCommand('ping').ok\" || exit 1" ]
+      test: ["CMD-SHELL", "mongosh --quiet -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval \"db.adminCommand('ping').ok\" || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -62,7 +62,7 @@ services:
     ports:
       - "9100:9100"
     networks:
-      - todo-network
+      - backend-net
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
@@ -82,15 +82,24 @@ services:
     ports:
       - "8080:8080"
     networks:
-      - todo-network
+      - backend-net
 
 networks:
-  todo-network:
+  backend-net:
     driver: bridge
     ipam:
       driver: default
       config:
         - subnet: 172.20.2.0/24
           gateway: 172.20.2.1
+
+  database-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.3.0/24
+          gateway: 172.20.3.1
+
 volumes:
   mongo_data:
