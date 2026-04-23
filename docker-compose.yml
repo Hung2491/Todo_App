@@ -102,11 +102,7 @@ services:
 networks:
   todo-networks:
     driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.20.1.0/24
-          gateway: 172.20.1.1
+    
 volumes:
   prometheus_data:
   grafana_data:
