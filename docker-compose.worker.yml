@@ -10,9 +10,6 @@ services:
       - "8000:8000"
     environment:
       - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${VM4_PRIVATE_IP}:27017,${VM2_PRIVATE_IP}:27017,${VM3_PRIVATE_IP}:27017/ts-crud?replicaSet=rs0&authSource=admin
-    depends_on:
-      mongo-secondary:
-        condition: service_healthy
     networks:
       - todo-networks      # chỉ join todo-networks
     healthcheck:
