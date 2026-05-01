@@ -34,8 +34,6 @@ services:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml
       - prometheus_data:/prometheus
-    ports:
-      - "9090:9090"
     networks:
       - todo-networks
     restart: always
@@ -46,8 +44,6 @@ services:
     restart: always
     volumes:
       - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
-    ports:
-      - "9093:9093"
     networks:
       - todo-networks
 
@@ -78,7 +74,7 @@ services:
       - '--housekeeping_interval=10s'
       - '--allow_dynamic_housekeeping=true'
     ports:
-      - "8081:8081"
+      - "8081:8080"
     networks:
       - todo-networks
 
