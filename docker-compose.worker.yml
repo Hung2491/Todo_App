@@ -6,7 +6,8 @@ services:
       dockerfile: Dockerfile
     container_name: todo-app-backend
     restart: always
-    # Port 8000 không expose ra host - Nginx đã proxy vào backend qua private IP
+    ports:
+      - "8000:8000"
     environment:
       - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${VM4_PRIVATE_IP}:27017,${VM2_PRIVATE_IP}:27017,${VM3_PRIVATE_IP}:27017/ts-crud?replicaSet=rs0&authSource=admin
     networks:
