@@ -63,6 +63,7 @@ jobs:
           VM2_PRIVATE_IP: ${{ secrets.VM2_PRIVATE_IP }}
           VM3_PRIVATE_IP: ${{ secrets.VM3_PRIVATE_IP }}
           VM4_PRIVATE_IP: ${{ secrets.VM4_PRIVATE_IP }}
+          VM5_PRIVATE_IP: ${{ secrets.VM5_PRIVATE_IP }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
