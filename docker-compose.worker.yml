@@ -32,8 +32,7 @@ services:
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
-      # Bind vào private IP để chỉ Prometheus (VM1) scrape được, không expose ra internet
-      - "${VM_PRIVATE_IP}:9100:9100"
+      - "9100:9100"
     networks:
       - todo-networks
 
@@ -53,8 +52,7 @@ services:
       - '--housekeeping_interval=10s'
       - '--allow_dynamic_housekeeping=true'
     ports:
-      # Bind vào private IP để chỉ Prometheus (VM1) scrape được, không expose ra internet
-      - "${VM_PRIVATE_IP}:8080:8080"
+      - "8080:8080"
     networks:
       - todo-networks
 
