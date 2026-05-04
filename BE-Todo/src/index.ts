@@ -29,9 +29,31 @@ app.use(express.urlencoded({ extended: true }));
 
 // Kết nối MongoDB
 mongoose
-  .connect(MONGO_URI)
+  .connect(MONGO_URI, {
+    // Thời gian tối đa để tìm primary mới sau khi failover (ms)
+    serverSelectionTimeoutMS: 30000,
+    // Tần suất driver ping để kiểm tra replica set health (ms)
+    heartbeatFrequencyMS: 2000,
+    // Timeout cho mỗi socket operation (ms)
+    socketTimeoutMS: 45000,
+    // Không buffer command khi mất kết nối → trả lỗi ngay, không timeout
+    bufferCommands: false,
+    // Thời gian chờ kết nối mới được thiết lập (ms)
+    connectTimeoutMS: 10000,
+  })
   .then(() => logger.info("✅ Connected to MongoDB", { uri: MONGO_URI.replace(/:\/\/.*@/, "://***@") }))
   .catch((err) => logger.error("❌ MongoDB connection error", { error: err.message }));
+
+// Lắng nghe sự kiện connection để log failover
+mongoose.connection.on("disconnected", () => {
+  logger.warn("⚠️ MongoDB disconnected - waiting for replica failover...");
+});
+mongoose.connection.on("reconnected", () => {
+  logger.info("✅ MongoDB reconnected to new primary");
+});
+mongoose.connection.on("error", (err) => {
+  logger.error("❌ MongoDB connection error", { error: err.message });
+});
 
 import { metricsRegister } from "./utils/metrics";
 

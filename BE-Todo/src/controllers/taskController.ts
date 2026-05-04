@@ -1,8 +1,17 @@
 import { Request, Response } from 'express';
 import Task, { ITask } from '../models/Task';
 import logger from '../utils/logger';
+import mongoose from 'mongoose';
+
+// Kiểm tra MongoDB đang có kết nối không (dùng khi bufferCommands: false)
+const isMongoConnected = () => mongoose.connection.readyState === 1;
 
 export const getAllTasks = async (req: Request, res: Response) => {
+  if (!isMongoConnected()) {
+    logger.warn('MongoDB not ready - replica failover in progress');
+    res.setHeader('Retry-After', '10');
+    return res.status(503).json({ error: 'Database temporarily unavailable, please retry' });
+  }
   try {
     const tasks = await Task.find();
     logger.info('Fetched all tasks', { count: tasks.length });
