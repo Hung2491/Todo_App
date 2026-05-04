@@ -34,6 +34,8 @@ services:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml
       - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
     networks:
       - todo-networks
     restart: always
@@ -50,9 +52,10 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
-    # Port 3000 không expose ra host - truy cập qua nginx reverse proxy
     volumes:
       - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
     networks:
       - todo-networks
     restart: always
@@ -72,6 +75,8 @@ services:
       - '--docker_only=true'
       - '--housekeeping_interval=10s'
       - '--allow_dynamic_housekeeping=true'
+    ports:
+      - "8080:8080"
     networks:
       - todo-networks
 
@@ -87,6 +92,8 @@ services:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
     networks:
       - todo-networks
 
