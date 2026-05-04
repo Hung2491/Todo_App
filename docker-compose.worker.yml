@@ -9,7 +9,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${VM2_PRIVATE_IP}:27017,${VM4_PRIVATE_IP}:27017,${VM2_PRIVATE_IP}:27017,${VM3_PRIVATE_IP}:27017/ts-crud?replicaSet=rs0&authSource=admin&readPreference=primaryPreferred
+      - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${VM4_PRIVATE_IP}:27017,${VM2_PRIVATE_IP}:27017,${VM3_PRIVATE_IP}:27017/ts-crud?replicaSet=rs0&authSource=admin&readPreference=primaryPreferred
     networks:
       - todo-networks
     healthcheck:
