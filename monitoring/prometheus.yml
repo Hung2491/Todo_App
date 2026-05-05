@@ -94,11 +94,11 @@ scrape_configs:
           role: 'backend'
           
   - job_name: 'cadvisor-vm4'
-  static_configs:
-    - targets: ['${VM4_PRIVATE_IP}:8080']
-      labels:
-        vm: 'vm4'
-        role: 'database'
+    static_configs:
+      - targets: ['${VM4_PRIVATE_IP}:8080']
+        labels:
+          vm: 'vm4'
+          role: 'database'
   # VM4 - MongoDB Primary
   - job_name: 'node-exporter-vm4'
     static_configs:
