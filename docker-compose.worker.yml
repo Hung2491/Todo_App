@@ -7,6 +7,7 @@ services:
     container_name: todo-app-backend
     restart: always
     ports:
+      # Bind vào private IP để Prometheus scrape /metrics, không expose 0.0.0.0
       - "8000:8000"
     environment:
       - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${VM4_PRIVATE_IP}:27017,${VM2_PRIVATE_IP}:27017,${VM3_PRIVATE_IP}:27017/ts-crud?replicaSet=rs0&authSource=admin&readPreference=primaryPreferred
@@ -32,6 +33,7 @@ services:
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
+      # Bind vào private IP để chỉ Prometheus (VM1) scrape được
       - "9100:9100"
     networks:
       - todo-networks
@@ -52,6 +54,7 @@ services:
       - '--housekeeping_interval=10s'
       - '--allow_dynamic_housekeeping=true'
     ports:
+      # Bind vào private IP để chỉ Prometheus (VM1) scrape được
       - "8080:8080"
     networks:
       - todo-networks

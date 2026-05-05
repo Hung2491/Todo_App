@@ -19,11 +19,10 @@ receivers:
   telegram_configs:
   - api_url: 'https://api.telegram.org'
     bot_token: '${TELEGRAM_BOT_TOKEN}'
-    chat_id: 8588793892
+    chat_id: ${TELEGRAM_CHAT_ID}
     send_resolved: true
     parse_mode: 'HTML'
     message: |
-      message: |
       <b>{{ if eq .Status "firing" }}🔥 CẢNH BÁO{{ else }}✅ ĐÃ PHỤC HỒI{{ end }}</b>
       {{ range .Alerts }}
       <b>Alert:</b> {{ .Labels.alertname }}
