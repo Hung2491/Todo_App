@@ -61,8 +61,8 @@ import { metricsRegister } from "./utils/metrics";
 app.get("/health", (_req, res) => {
   res.status(200).json({
     status: "ok",
-    // message: "CI/CD Pipeline is working perfectly!", 
-    message: "CI/CD Pipeline is perfectly!",
+    message: "CI/CD Pipeline is working perfectly!",
+    // message: "CI/CD Pipeline is working again for testing!",
     timestamp: new Date().toISOString()
   });
 });
