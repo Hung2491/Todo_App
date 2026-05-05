@@ -15,34 +15,36 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # VM5 - Monitoring Hub (Prometheus chạy trên VM này, dùng tên container)
-  - job_name: 'node-exporter-vm5'
-    static_configs:
-      - targets: ['node-exporter:9100']
-        labels:
-          vm: 'vm5'
-          role: 'monitor'
-
-  - job_name: 'cadvisor-vm5'
-    static_configs:
-      - targets: ['cadvisor:8080']
-        labels:
-          vm: 'vm5'
-          role: 'monitor'
-
-  # VM1 - Load Balancer (scrape qua private IP từ VM5)
+  # VM1 - Load Balancer + Monitor (Prometheus chạy trên VM này, dùng tên container)
   - job_name: 'node-exporter-vm1'
     static_configs:
-      - targets: ['${VM1_PRIVATE_IP}:9100']
+      - targets: ['node-exporter:9100']
         labels:
           vm: 'vm1'
           role: 'loadbalancer'
 
   - job_name: 'cadvisor-vm1'
     static_configs:
-      - targets: ['${VM1_PRIVATE_IP}:8080']
+      # Port 8080 là port nội bộ của container cAdvisor trong Docker network
+      - targets: ['cadvisor:8080']
         labels:
           vm: 'vm1'
+          role: 'loadbalancer'
+
+  # VM5 - Load Balancer + Monitor (máy khác, scrape qua private IP)
+  - job_name: 'node-exporter-vm5'
+    static_configs:
+      - targets: ['${VM5_PRIVATE_IP}:9100']
+        labels:
+          vm: 'vm5'
+          role: 'loadbalancer'
+
+  - job_name: 'cadvisor-vm5'
+    static_configs:
+      # cAdvisor trên VM5 expose port 8080 ra host
+      - targets: ['${VM5_PRIVATE_IP}:8080']
+        labels:
+          vm: 'vm5'
           role: 'loadbalancer'
 
   # VM2 - Backend + Mongo Secondary
@@ -55,6 +57,7 @@ scrape_configs:
 
   - job_name: 'cadvisor-vm2'
     static_configs:
+      # cAdvisor trên VM2 expose port 8080 ra host
       - targets: ['${VM2_PRIVATE_IP}:8080']
         labels:
           vm: 'vm2'
@@ -77,6 +80,7 @@ scrape_configs:
 
   - job_name: 'cadvisor-vm3'
     static_configs:
+      # cAdvisor trên VM3 expose port 8080 ra host
       - targets: ['${VM3_PRIVATE_IP}:8080']
         labels:
           vm: 'vm3'
@@ -88,18 +92,18 @@ scrape_configs:
         labels:
           vm: 'vm3'
           role: 'backend'
-
+          
+  - job_name: 'cadvisor-vm4'
+    static_configs:
+      - targets: ['${VM4_PRIVATE_IP}:8080']
+        labels:
+          vm: 'vm4'
+          role: 'database'
+          
   # VM4 - MongoDB Primary
   - job_name: 'node-exporter-vm4'
     static_configs:
       - targets: ['${VM4_PRIVATE_IP}:9100']
-        labels:
-          vm: 'vm4'
-          role: 'database'
-
-  - job_name: 'cadvisor-vm4'
-    static_configs:
-      - targets: ['${VM4_PRIVATE_IP}:8080']
         labels:
           vm: 'vm4'
           role: 'database'
