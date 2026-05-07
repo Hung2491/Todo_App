@@ -30,16 +30,21 @@ app.use(express.urlencoded({ extended: true }));
 // Kết nối MongoDB
 mongoose
   .connect(MONGO_URI, {
-    // Thời gian tối đa để tìm primary mới sau khi failover (ms)
-    serverSelectionTimeoutMS: 30000,
-    // Tần suất driver ping để kiểm tra replica set health (ms)
-    heartbeatFrequencyMS: 2000,
-    // Timeout cho mỗi socket operation (ms)
-    socketTimeoutMS: 45000,
-    // Không buffer command khi mất kết nối → trả lỗi ngay, không timeout
+    // Phát hiện primary down nhanh hơn (ping mỗi 1s thay vì 2s)
+    heartbeatFrequencyMS: 1000,
+    // Thời gian tối đa chờ tìm primary mới sau failover
+    serverSelectionTimeoutMS: 10000,
+    // Timeout cho mỗi socket operation
+    socketTimeoutMS: 20000,
+    // Trả lỗi ngay, không buffer command khi mất kết nối
     bufferCommands: false,
-    // Thời gian chờ kết nối mới được thiết lập (ms)
-    connectTimeoutMS: 10000,
+    // Timeout kết nối ban đầu
+    connectTimeoutMS: 5000,
+    // Connection pool: tái dùng connection thay vì tạo mới
+    maxPoolSize: 10,
+    minPoolSize: 2,
+    // Tắt driver-level retry writes → backend tự trả 503 rõ ràng
+    retryWrites: false,
   })
   .then(() => logger.info("✅ Connected to MongoDB", { uri: MONGO_URI.replace(/:\/\/.*@/, "://***@") }))
   .catch((err) => logger.error("❌ MongoDB connection error", { error: err.message }));
