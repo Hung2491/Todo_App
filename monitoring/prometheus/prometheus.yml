@@ -19,15 +19,15 @@ scrape_configs:
   # VM1 - Load Balancer + Monitor (Prometheus chạy trên VM này, dùng tên container)
   - job_name: 'node-exporter-vm1'
     static_configs:
-      - targets: ['node-exporter:9100']
+      - targets: ['${VM1_PRIVATE_IP}:9100']
         labels:
           vm: 'vm1'
           role: 'loadbalancer'
 
   - job_name: 'cadvisor-vm1'
     static_configs:
-      # Port 8080 là port nội bộ của container cAdvisor trong Docker network
-      - targets: ['cadvisor:8081']
+      # Port 8081 là port expose của cAdvisor
+      - targets: ['${VM1_PRIVATE_IP}:8081']
         labels:
           vm: 'vm1'
           role: 'loadbalancer'
