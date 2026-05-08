@@ -1,7 +1,7 @@
 services:
 
   frontend:
-    image: ${DOCKERHUB_USERNAME}/todo-app-frontend:${IMAGE_TAG}
+    image: ${DOCKERHUB_USERNAME}/todo-app-frontend:${FRONTEND_TAG}
     build:
       context: ./FE-Todo
       dockerfile: Dockerfile
@@ -28,7 +28,7 @@ services:
       - todo-networks
 
   prometheus:
-    image: ${DOCKERHUB_USERNAME}/todo-app-prometheus:${IMAGE_TAG}
+    image: ${DOCKERHUB_USERNAME}/todo-app-prometheus:${MONITORING_TAG}
     container_name: prometheus
     volumes:
       - prometheus_data:/prometheus
@@ -39,14 +39,14 @@ services:
     restart: always
 
   alertmanager:
-    image: ${DOCKERHUB_USERNAME}/todo-app-alertmanager:${IMAGE_TAG}
+    image: ${DOCKERHUB_USERNAME}/todo-app-alertmanager:${MONITORING_TAG}
     container_name: alertmanager
     restart: always
     networks:
       - todo-networks
 
   grafana:
-    image: grafana/grafana:latest
+    image: ${DOCKERHUB_USERNAME}/todo-app-grafana:${MONITORING_TAG}
     container_name: grafana
     volumes:
       - grafana_data:/var/lib/grafana
@@ -57,7 +57,7 @@ services:
     restart: always
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: ${DOCKERHUB_USERNAME}/todo-app-cadvisor:${MONITORING_TAG}
     container_name: cadvisor
     restart: unless-stopped
     privileged: true
@@ -78,7 +78,7 @@ services:
       - todo-networks
 
   node-exporter:
-    image: prom/node-exporter:latest
+    image: ${DOCKERHUB_USERNAME}/todo-app-node-exporter:${MONITORING_TAG}
     container_name: node-exporter
     restart: always
     volumes:

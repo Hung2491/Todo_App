@@ -58,7 +58,11 @@ jobs:
           ${{ secrets[matrix.env] }}
           ENVEOF
           echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> ~/project/Todo_App/.env
-          echo "IMAGE_TAG=v${{ github.run_number }}" >> ~/project/Todo_App/.env
+          
+          touch ~/project/Todo_App/.env.tags
+          sed -i '/^BACKEND_TAG=/d' ~/project/Todo_App/.env.tags
+          echo "BACKEND_TAG=v${{ github.run_number }}" >> ~/project/Todo_App/.env.tags
+          cat ~/project/Todo_App/.env.tags >> ~/project/Todo_App/.env
 
       - name: Deploy ${{ matrix.vm }}
         run: |

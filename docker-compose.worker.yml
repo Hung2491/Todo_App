@@ -1,6 +1,6 @@
 services:
   backend:
-    image: ${DOCKERHUB_USERNAME}/todo-app-backend:${IMAGE_TAG}
+    image: ${DOCKERHUB_USERNAME}/todo-app-backend:${BACKEND_TAG}
     build:
       context: ./BE-Todo
       dockerfile: Dockerfile
@@ -21,7 +21,7 @@ services:
       retries: 3
 
   node-exporter:
-    image: prom/node-exporter:latest
+    image: ${DOCKERHUB_USERNAME}/todo-app-node-exporter:${MONITORING_TAG}
     container_name: node-exporter
     restart: always
     pid: host
@@ -40,7 +40,7 @@ services:
       - todo-networks
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: ${DOCKERHUB_USERNAME}/todo-app-cadvisor:${MONITORING_TAG}
     container_name: cadvisor
     restart: unless-stopped
     privileged: true

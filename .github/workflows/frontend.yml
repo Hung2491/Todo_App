@@ -52,12 +52,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create .env
-        run: |
-          echo "${{ secrets[matrix.env] }}" > .env
-          echo "IMAGE_TAG=v${{ github.run_number }}" >> .env
-          echo "BIND_IP=${{ secrets[matrix.private_ip] }}" >> .env
-
       - name: Copy files
         uses: appleboy/scp-action@master
         with:
@@ -65,7 +59,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets[matrix.key] }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "docker-compose.yml,.env,nginx/"
+          source: "docker-compose.yml,nginx/"
           target: "~/project/Todo_App"
 
       - name: Deploy ${{ matrix.name }}
@@ -78,6 +72,15 @@ jobs:
           script: |
             cd ~/project/Todo_App
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+            echo "${{ secrets[matrix.env] }}" > .env
+            echo "BIND_IP=${{ secrets[matrix.private_ip] }}" >> .env
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+
+            touch .env.tags
+            sed -i '/^FRONTEND_TAG=/d' .env.tags
+            echo "FRONTEND_TAG=v${{ github.run_number }}" >> .env.tags
+            cat .env.tags >> .env
 
             docker compose down frontend
             docker compose pull frontend
