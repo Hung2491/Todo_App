@@ -1,7 +1,7 @@
 services:
 
   frontend:
-    image: ${DOCKERHUB_USERNAME}/todo-app-frontend:latest
+    image: ${DOCKERHUB_USERNAME}/todo-app-frontend:${IMAGE_TAG:-latest}
     build:
       context: ./FE-Todo
       dockerfile: Dockerfile

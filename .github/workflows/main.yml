@@ -15,6 +15,7 @@ jobs:
       - name: Create .env for build
         run: |
           echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
+          echo "IMAGE_TAG=${GITHUB_SHA::7}" >> .env
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -57,6 +58,7 @@ jobs:
       - name: Create .env
         run: |
           echo "${{ secrets[matrix.env] }}" > .env
+          echo "IMAGE_TAG=${GITHUB_SHA::7}" >> .env
 
       - name: Generate Monitoring Configs
         env:
@@ -99,7 +101,7 @@ jobs:
             docker compose pull
             docker compose up -d --force-recreate --remove-orphans
 
-            docker image prune -f
+            docker image prune -af --filter "until=24h"
 
 
   # ================= DEPLOY WORKERS (VM2 + VM3) =================
@@ -133,6 +135,7 @@ jobs:
           ${{ secrets[matrix.env] }}
           ENVEOF
           echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> ~/project/Todo_App/.env
+          echo "IMAGE_TAG=${GITHUB_SHA::7}" >> ~/project/Todo_App/.env
 
       - name: Setup mongo keyfile
         run: |
@@ -147,8 +150,7 @@ jobs:
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
           
           docker compose -f docker-compose.worker.yml down
-          docker image rm ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-backend:latest || true
           docker compose -f docker-compose.worker.yml pull
           docker compose -f docker-compose.worker.yml up -d --force-recreate --remove-orphans
 
-          docker image prune -f
+          docker image prune -af --filter "until=24h"
