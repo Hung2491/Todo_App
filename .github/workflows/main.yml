@@ -33,6 +33,29 @@ jobs:
           docker compose -f docker-compose.worker.yml build --no-cache backend
           docker compose -f docker-compose.worker.yml push backend
 
+      - name: Generate Monitoring Configs
+        env:
+          VM1_PRIVATE_IP: ${{ secrets.VM1_PRIVATE_IP }}
+          VM2_PRIVATE_IP: ${{ secrets.VM2_PRIVATE_IP }}
+          VM3_PRIVATE_IP: ${{ secrets.VM3_PRIVATE_IP }}
+          VM4_PRIVATE_IP: ${{ secrets.VM4_PRIVATE_IP }}
+          VM5_PRIVATE_IP: ${{ secrets.VM5_PRIVATE_IP }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          envsubst < monitoring/prometheus/prometheus.yml > monitoring/prometheus/prometheus.yml.tmp
+          mv monitoring/prometheus/prometheus.yml.tmp monitoring/prometheus/prometheus.yml
+
+          envsubst < monitoring/alertmanager/alertmanager.yml > monitoring/alertmanager/alertmanager.yml.tmp
+          mv monitoring/alertmanager/alertmanager.yml.tmp monitoring/alertmanager/alertmanager.yml
+
+      - name: Build and Push Monitoring Images
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-prometheus:v${{ github.run_number }} ./monitoring/prometheus
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-prometheus:v${{ github.run_number }}
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-alertmanager:v${{ github.run_number }} ./monitoring/alertmanager
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-alertmanager:v${{ github.run_number }}
+
 
   # ================= DEPLOY VM1 + VM5 =================
   deploy-frontend:
@@ -63,21 +86,6 @@ jobs:
           echo "IMAGE_TAG=v${{ github.run_number }}" >> .env
           echo "BIND_IP=${{ secrets[matrix.private_ip] }}" >> .env
 
-      - name: Generate Monitoring Configs
-        env:
-          VM1_PRIVATE_IP: ${{ secrets.VM1_PRIVATE_IP }}
-          VM2_PRIVATE_IP: ${{ secrets.VM2_PRIVATE_IP }}
-          VM3_PRIVATE_IP: ${{ secrets.VM3_PRIVATE_IP }}
-          VM4_PRIVATE_IP: ${{ secrets.VM4_PRIVATE_IP }}
-          VM5_PRIVATE_IP: ${{ secrets.VM5_PRIVATE_IP }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: |
-          envsubst < monitoring/prometheus.yml > monitoring/prometheus.yml.tmp
-          mv monitoring/prometheus.yml.tmp monitoring/prometheus.yml
-
-          envsubst < monitoring/alertmanager.yml > monitoring/alertmanager.yml.tmp
-          mv monitoring/alertmanager.yml.tmp monitoring/alertmanager.yml
 
       - name: Copy files
         uses: appleboy/scp-action@master
@@ -86,7 +94,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets[matrix.key] }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "FE-Todo/,docker-compose.yml,.env,nginx/,monitoring/"
+          source: "FE-Todo/,docker-compose.yml,.env,nginx/"
           target: "~/project/Todo_App"
 
       - name: Deploy ${{ matrix.name }}

@@ -28,11 +28,9 @@ services:
       - todo-networks
 
   prometheus:
-    image: prom/prometheus:latest
+    image: ${DOCKERHUB_USERNAME}/todo-app-prometheus:${IMAGE_TAG}
     container_name: prometheus
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml
       - prometheus_data:/prometheus
     ports:
       - "${BIND_IP:-127.0.0.1}:9090:9090"
@@ -41,11 +39,9 @@ services:
     restart: always
 
   alertmanager:
-    image: prom/alertmanager:latest
+    image: ${DOCKERHUB_USERNAME}/todo-app-alertmanager:${IMAGE_TAG}
     container_name: alertmanager
     restart: always
-    volumes:
-      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
     networks:
       - todo-networks
 
