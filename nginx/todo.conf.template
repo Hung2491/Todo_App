@@ -32,8 +32,8 @@ server {
 
     location /health {
         access_log off;
+        default_type text/plain;
         return 200 "ok\n";
-        add_header Content-Type text/plain;
     }
 
     location / {
@@ -113,7 +113,7 @@ server {
     # ── Health check ──────────────────────────────────────────────────────
     location /health {
         access_log off;
+        default_type text/plain;
         return 200 "ok\n";
-        add_header Content-Type text/plain;
     }
 }
