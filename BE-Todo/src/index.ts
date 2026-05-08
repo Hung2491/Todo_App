@@ -33,11 +33,9 @@ mongoose
     // Phát hiện primary down nhanh hơn (ping mỗi 1s thay vì 2s)
     heartbeatFrequencyMS: 1000,
     // Thời gian tối đa chờ tìm primary mới sau failover
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 15000,
     // Timeout cho mỗi socket operation
     socketTimeoutMS: 20000,
-    // Trả lỗi ngay, không buffer command khi mất kết nối
-    bufferCommands: false,
     // Timeout kết nối ban đầu
     connectTimeoutMS: 5000,
     // Connection pool: tái dùng connection thay vì tạo mới
