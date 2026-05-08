@@ -118,9 +118,11 @@ jobs:
           - vm: vm2
             runs_on: '["self-hosted","linux","vm2"]'
             env: ENV_FILE_VM
+            private_ip: VM2_PRIVATE_IP
           - vm: vm3
             runs_on: '["self-hosted","linux","vm3"]'
             env: ENV_FILE_VM
+            private_ip: VM3_PRIVATE_IP
 
     runs-on: ${{ fromJson(matrix.runs_on) }}
     steps:
@@ -138,6 +140,7 @@ jobs:
           ${{ secrets[matrix.env] }}
           ENVEOF
           echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> ~/project/Todo_App/.env
+          echo "BIND_IP=${{ secrets[matrix.private_ip] }}" >> ~/project/Todo_App/.env
           
           touch ~/project/Todo_App/.env.tags
           sed -i '/^MONITORING_TAG=/d' ~/project/Todo_App/.env.tags
