@@ -1,7 +1,7 @@
 route:
   group_by: ['alertname', 'vm']   # nhóm theo VM để tránh gom nhầm nhiều VM
   group_wait: 0s                  # KHÔNG CHỜ, bắn alert ngay lập tức
-  group_interval: 1m              #
+  group_interval: 10s             # giảm xuống 10s để tin nhắn Phục hồi (Resolved) được bắn cực nhanh
   repeat_interval: 4h             # tăng từ 1h → 4h, alert vẫn firing mới gửi lại
   receiver: 'telegram-notifications'
 
