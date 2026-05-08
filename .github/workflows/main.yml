@@ -46,11 +46,13 @@ jobs:
             host: VM1_HOST
             key: VM1_SSH_KEY
             env: ENV_FILE_VM
+            private_ip: VM1_PRIVATE_IP
 
           - name: vm5
             host: VM5_HOST
             key: VM5_SSH_KEY
             env: ENV_FILE_VM
+            private_ip: VM5_PRIVATE_IP
 
     steps:
       - uses: actions/checkout@v4
@@ -59,6 +61,7 @@ jobs:
         run: |
           echo "${{ secrets[matrix.env] }}" > .env
           echo "IMAGE_TAG=v${{ github.run_number }}" >> .env
+          echo "BIND_IP=${{ secrets[matrix.private_ip] }}" >> .env
 
       - name: Generate Monitoring Configs
         env:
