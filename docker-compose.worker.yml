@@ -1,6 +1,6 @@
 services:
   backend:
-    image: ${DOCKERHUB_USERNAME}/todo-app-backend:${IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_USERNAME}/todo-app-backend:${IMAGE_TAG}
     build:
       context: ./BE-Todo
       dockerfile: Dockerfile
