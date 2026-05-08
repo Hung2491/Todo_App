@@ -28,6 +28,25 @@ interface TodoProviderProps {
 // Tự động dùng /tasks khi deploy (Nginx lo proxy), còn chạy local dev thì chọc thẳng vào localhost:8000
 const API_BASE_URL = import.meta.env.PROD ? "/tasks" : "http://localhost:8000/tasks";
 
+const fetchWithRetry = async (url: string, options?: RequestInit, retries = 3): Promise<Response> => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.status === 503) {
+        // BE đang failover, đợi rồi thử lại
+        const retryAfter = parseInt(res.headers.get('Retry-After') || '3') * 1000;
+        await new Promise(r => setTimeout(r, retryAfter));
+        continue;
+      }
+      return res;
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      await new Promise(r => setTimeout(r, 1000 * (i + 1))); // exponential backoff
+    }
+  }
+  throw new Error('Max retries exceeded');
+};
+
 export const TodoProvider = ({ children }: TodoProviderProps) => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -42,7 +61,7 @@ export const TodoProvider = ({ children }: TodoProviderProps) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(API_BASE_URL);
+      const response = await fetchWithRetry(API_BASE_URL);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -61,7 +80,7 @@ export const TodoProvider = ({ children }: TodoProviderProps) => {
   const addTodo = async (todo: AddTodo) => {
     try {
       setError(null);
-      const response = await fetch(API_BASE_URL, {
+      const response = await fetchWithRetry(API_BASE_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -93,7 +112,7 @@ export const TodoProvider = ({ children }: TodoProviderProps) => {
 
     try {
       setError(null);
-      const response = await fetch(`${API_BASE_URL}/${id}`, {
+      const response = await fetchWithRetry(`${API_BASE_URL}/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -123,7 +142,7 @@ export const TodoProvider = ({ children }: TodoProviderProps) => {
 
     try {
       setError(null);
-      const response = await fetch(`${API_BASE_URL}/${id}`, {
+      const response = await fetchWithRetry(`${API_BASE_URL}/${id}`, {
         method: "DELETE",
       });
 
@@ -149,7 +168,7 @@ export const TodoProvider = ({ children }: TodoProviderProps) => {
 
     try {
       setError(null);
-      const response = await fetch(`${API_BASE_URL}/${id}`, {
+      const response = await fetchWithRetry(`${API_BASE_URL}/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
