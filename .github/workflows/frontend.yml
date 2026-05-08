@@ -1,0 +1,86 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - 'FE-Todo/**'
+      - 'nginx/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/frontend.yml'
+
+jobs:
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create .env for build
+        run: |
+          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
+          echo "IMAGE_TAG=v${{ github.run_number }}" >> .env
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Frontend
+        run: |
+          docker compose -f docker-compose.yml build --no-cache frontend
+          docker compose -f docker-compose.yml push frontend
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    needs: build-frontend
+
+    strategy:
+      matrix:
+        include:
+          - name: vm1
+            host: VM1_HOST
+            key: VM1_SSH_KEY
+            env: ENV_FILE_VM
+            private_ip: VM1_PRIVATE_IP
+          - name: vm5
+            host: VM5_HOST
+            key: VM5_SSH_KEY
+            env: ENV_FILE_VM
+            private_ip: VM5_PRIVATE_IP
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create .env
+        run: |
+          echo "${{ secrets[matrix.env] }}" > .env
+          echo "IMAGE_TAG=v${{ github.run_number }}" >> .env
+          echo "BIND_IP=${{ secrets[matrix.private_ip] }}" >> .env
+
+      - name: Copy files
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets[matrix.host] }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets[matrix.key] }}
+          port: ${{ secrets.SERVER_PORT }}
+          source: "docker-compose.yml,.env,nginx/"
+          target: "~/project/Todo_App"
+
+      - name: Deploy ${{ matrix.name }}
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets[matrix.host] }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets[matrix.key] }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            cd ~/project/Todo_App
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+            docker compose down frontend
+            docker compose pull frontend
+            docker compose up -d --force-recreate --remove-orphans
+
+            docker image prune -af --filter "until=24h"
