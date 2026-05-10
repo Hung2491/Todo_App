@@ -93,6 +93,12 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             cd ~/project/Todo_App
+            echo "------------------------------------------------------------"
+            echo "Deployment Info:"
+            echo "  VM Name: ${{ matrix.name }}"
+            echo "  Target IP (Secret Name): ${{ matrix.private_ip }}"
+            echo "  Host IP: $(hostname -I | awk '{print $1}')"
+            echo "------------------------------------------------------------"
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
             echo "${{ secrets[matrix.env] }}" > .env
@@ -149,6 +155,12 @@ jobs:
       - name: Deploy ${{ matrix.vm }}
         run: |
           cd ~/project/Todo_App
+          echo "------------------------------------------------------------"
+          echo "Deployment Info:"
+          echo "  VM Name: ${{ matrix.vm }}"
+          echo "  Target IP (Secret Name): ${{ matrix.private_ip }}"
+          echo "  Host IP: $(hostname -I | awk '{print $1}')"
+          echo "------------------------------------------------------------"
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
           
           docker stop cadvisor node-exporter || true
