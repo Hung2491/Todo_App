@@ -22,7 +22,6 @@ services:
 
   node-exporter:
     image: ${DOCKERHUB_USERNAME}/todo-app-node-exporter:${MONITORING_TAG}
-    container_name: node-exporter
     restart: always
     pid: host
     volumes:
@@ -41,7 +40,6 @@ services:
 
   cadvisor:
     image: ${DOCKERHUB_USERNAME}/todo-app-cadvisor:${MONITORING_TAG}
-    container_name: cadvisor
     restart: unless-stopped
     privileged: true
     volumes:
@@ -59,7 +57,7 @@ services:
       # Bind vào private IP để chỉ Prometheus (VM1) scrape được
       - "${BIND_IP}:8081:8081"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8081/api/v2.1/events" ]
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8081/api/v2.1/events || exit 1" ]
       interval: 30s
       timeout: 15s
       retries: 3

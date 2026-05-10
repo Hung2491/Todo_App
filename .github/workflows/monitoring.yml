@@ -46,8 +46,7 @@ jobs:
           docker tag grafana/grafana:latest ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-grafana:v${{ github.run_number }}
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-grafana:v${{ github.run_number }}
           
-          docker pull gcr.io/cadvisor/cadvisor:latest
-          docker tag gcr.io/cadvisor/cadvisor:latest ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-cadvisor:v${{ github.run_number }}
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-cadvisor:v${{ github.run_number }} ./monitoring/cadvisor
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-cadvisor:v${{ github.run_number }}
           
           docker pull prom/node-exporter:latest
@@ -151,6 +150,9 @@ jobs:
         run: |
           cd ~/project/Todo_App
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          
+          docker stop cadvisor node-exporter || true
+          docker rm -f cadvisor node-exporter || true
           
           docker compose -f docker-compose.worker.yml pull cadvisor node-exporter
           docker compose -f docker-compose.worker.yml up -d --force-recreate --remove-orphans cadvisor node-exporter
