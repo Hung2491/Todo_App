@@ -1,8 +1,11 @@
+global:
+  resolve_timeout: 10s
+
 route:
   group_by: ['alertname', 'vm']   # nhóm theo VM để tránh gom nhầm nhiều VM
   group_wait: 0s                  # KHÔNG CHỜ, bắn alert ngay lập tức
-  group_interval: 10s             # giảm xuống 10s để tin nhắn Phục hồi (Resolved) được bắn cực nhanh
-  repeat_interval: 4h             # tăng từ 1h → 4h, alert vẫn firing mới gửi lại
+  group_interval: 1s             # Cực nhanh: kiểm tra trạng thái mỗi giây
+  repeat_interval: 15m            # Nhắc lại sau mỗi 15 phút nếu chưa sửa xong
   receiver: 'telegram-notifications'
 
 # ─── Inhibit Rules ────────────────────────────────────────────────────────────

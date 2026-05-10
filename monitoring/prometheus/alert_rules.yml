@@ -46,7 +46,7 @@ groups:
       (up{job="cadvisor-vm1"} == 1)
       and on()
       absent(container_memory_usage_bytes{name="todo-app-frontend"})
-    for: 2m    # tăng từ 1m → 2m, tránh fire khi container đang restart
+    for: 10s    # Báo ngay sau 10s nếu container sập
     labels:
       severity: critical
     annotations:
