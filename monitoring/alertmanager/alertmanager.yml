@@ -9,7 +9,6 @@ route:
   receiver: 'telegram-notifications'
 
 # ─── Inhibit Rules ────────────────────────────────────────────────────────────
-# Khi InstanceDown đang fire, KHÔNG gửi thêm các alert con của cùng instance đó
 inhibit_rules:
   - source_matchers:
       - alertname = "InstanceDown"

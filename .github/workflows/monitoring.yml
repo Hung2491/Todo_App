@@ -35,23 +35,35 @@ jobs:
           envsubst < monitoring/alertmanager/alertmanager.yml > monitoring/alertmanager/alertmanager.yml.tmp
           mv monitoring/alertmanager/alertmanager.yml.tmp monitoring/alertmanager/alertmanager.yml
 
-      - name: Build and Push Monitoring Images
+      - name: Build and Push Prometheus & Alertmanager
         run: |
+          # Các image này chứa config → phải build mới mỗi lần deploy
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-prometheus:v${{ github.run_number }} ./monitoring/prometheus
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-prometheus:v${{ github.run_number }}
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-alertmanager:v${{ github.run_number }} ./monitoring/alertmanager
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-alertmanager:v${{ github.run_number }}
-          
-          docker pull grafana/grafana:latest
-          docker tag grafana/grafana:latest ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-grafana:v${{ github.run_number }}
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-grafana:v${{ github.run_number }}
-          
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-cadvisor:v${{ github.run_number }} ./monitoring/cadvisor
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-cadvisor:v${{ github.run_number }}
-          
-          docker pull prom/node-exporter:latest
-          docker tag prom/node-exporter:latest ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-node-exporter:v${{ github.run_number }}
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-node-exporter:v${{ github.run_number }}
+
+      - name: Build Static Images (only if not exists on Docker Hub)
+        run: |
+          # Grafana — image tĩnh, chỉ push một lần với tag latest
+          if ! docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-grafana:latest > /dev/null 2>&1; then
+            docker pull grafana/grafana:latest
+            docker tag grafana/grafana:latest ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-grafana:latest
+            docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-grafana:latest
+          fi
+
+          # cAdvisor — chỉ push lại nếu Dockerfile thay đổi
+          if ! docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-cadvisor:latest > /dev/null 2>&1; then
+            docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-cadvisor:latest ./monitoring/cadvisor
+            docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-cadvisor:latest
+          fi
+
+          # Node-Exporter — image tĩnh, chỉ push một lần với tag latest
+          if ! docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-node-exporter:latest > /dev/null 2>&1; then
+            docker pull prom/node-exporter:latest
+            docker tag prom/node-exporter:latest ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-node-exporter:latest
+            docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-node-exporter:latest
+          fi
 
   deploy-monitoring:
     runs-on: ubuntu-latest
@@ -107,7 +119,9 @@ jobs:
 
             touch .env.tags
             sed -i '/^MONITORING_TAG=/d' .env.tags
+            sed -i '/^STATIC_TAG=/d' .env.tags
             echo "MONITORING_TAG=v${{ github.run_number }}" >> .env.tags
+            echo "STATIC_TAG=latest" >> .env.tags
             cat .env.tags >> .env
 
             docker compose pull prometheus alertmanager grafana cadvisor node-exporter
@@ -167,6 +181,6 @@ jobs:
           docker rm -f cadvisor node-exporter || true
           
           docker compose -f docker-compose.worker.yml pull cadvisor node-exporter
-          docker compose -f docker-compose.worker.yml up -d --force-recreate --remove-orphans cadvisor node-exporter
+          docker compose -f docker-compose.worker.yml up -d --force-recreate cadvisor node-exporter
 
           docker image prune -af --filter "until=24h"

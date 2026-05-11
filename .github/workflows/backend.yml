@@ -81,6 +81,6 @@ jobs:
           
           docker compose -f docker-compose.worker.yml down backend
           docker compose -f docker-compose.worker.yml pull backend
-          docker compose -f docker-compose.worker.yml up -d --force-recreate --remove-orphans
+          docker compose -f docker-compose.worker.yml up -d --force-recreate backend
 
           docker image prune -af --filter "until=24h"

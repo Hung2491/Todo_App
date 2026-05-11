@@ -20,7 +20,7 @@ services:
       - VM3_PRIVATE_IP=${VM3_PRIVATE_IP}
       - VM_PUBLIC_IP=${VM_PUBLIC_IP}
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- --no-check-certificate https://localhost/health > /dev/null || exit 1" ]
+      test: [ "CMD-SHELL", "wget -qO- http://localhost/health > /dev/null || exit 1" ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -46,7 +46,7 @@ services:
       - todo-networks
 
   grafana:
-    image: ${DOCKERHUB_USERNAME}/todo-app-grafana:${MONITORING_TAG}
+    image: ${DOCKERHUB_USERNAME}/todo-app-grafana:${STATIC_TAG}
     container_name: grafana
     volumes:
       - grafana_data:/var/lib/grafana
@@ -57,7 +57,7 @@ services:
     restart: always
 
   cadvisor:
-    image: ${DOCKERHUB_USERNAME}/todo-app-cadvisor:${MONITORING_TAG}
+    image: ${DOCKERHUB_USERNAME}/todo-app-cadvisor:${STATIC_TAG}
     restart: unless-stopped
     privileged: true
     volumes:
@@ -83,7 +83,7 @@ services:
       - todo-networks
 
   node-exporter:
-    image: ${DOCKERHUB_USERNAME}/todo-app-node-exporter:${MONITORING_TAG}
+    image: ${DOCKERHUB_USERNAME}/todo-app-node-exporter:${STATIC_TAG}
     restart: always
     volumes:
       - /proc:/host/proc:ro

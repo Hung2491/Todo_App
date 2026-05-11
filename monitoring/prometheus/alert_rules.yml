@@ -9,7 +9,8 @@ groups:
       severity: critical
     annotations:
       summary: "Service ngừng hoạt động!"
-      description: "Dịch vụ {{ $labels.job }} - instance {{ $labels.instance }} đã ngừng hoạt động hơn 1 phút."
+      description: "Dịch vụ {{ $labels.job }} - instance {{ $labels.instance }} đã ngừng hoạt động."
+      vm: "{{ $labels.vm }}"
 
   - alert: HighCPUUsage
     expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 85

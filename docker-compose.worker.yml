@@ -21,7 +21,7 @@ services:
       retries: 3
 
   node-exporter:
-    image: ${DOCKERHUB_USERNAME}/todo-app-node-exporter:${MONITORING_TAG}
+    image: ${DOCKERHUB_USERNAME}/todo-app-node-exporter:${STATIC_TAG}
     restart: always
     pid: host
     volumes:
@@ -39,7 +39,7 @@ services:
       - todo-networks
 
   cadvisor:
-    image: ${DOCKERHUB_USERNAME}/todo-app-cadvisor:${MONITORING_TAG}
+    image: ${DOCKERHUB_USERNAME}/todo-app-cadvisor:${STATIC_TAG}
     restart: unless-stopped
     privileged: true
     volumes:

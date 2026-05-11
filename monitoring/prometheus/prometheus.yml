@@ -1,6 +1,6 @@
 global:
-  scrape_interval: 2s
-  evaluation_interval: 2s
+  scrape_interval: 15s
+  evaluation_interval: 15s
 
 rule_files:
   - "alert_rules.yml"
@@ -110,17 +110,17 @@ scrape_configs:
           vm: 'vm3'
           role: 'backend'
           
-  - job_name: 'cadvisor-vm4'
-    static_configs:
-      - targets: ['${VM4_PRIVATE_IP}:8081']
-        labels:
-          vm: 'vm4'
-          role: 'database'
-          
   # VM4 - MongoDB Primary
   - job_name: 'node-exporter-vm4'
     static_configs:
       - targets: ['${VM4_PRIVATE_IP}:9100']
+        labels:
+          vm: 'vm4'
+          role: 'database'
+
+  - job_name: 'cadvisor-vm4'
+    static_configs:
+      - targets: ['${VM4_PRIVATE_IP}:8081']
         labels:
           vm: 'vm4'
           role: 'database'
