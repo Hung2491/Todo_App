@@ -163,7 +163,9 @@ jobs:
           
           touch ~/project/Todo_App/.env.tags
           sed -i '/^MONITORING_TAG=/d' ~/project/Todo_App/.env.tags
+          sed -i '/^STATIC_TAG=/d' ~/project/Todo_App/.env.tags
           echo "MONITORING_TAG=v${{ github.run_number }}" >> ~/project/Todo_App/.env.tags
+          echo "STATIC_TAG=latest" >> ~/project/Todo_App/.env.tags
           cat ~/project/Todo_App/.env.tags >> ~/project/Todo_App/.env
 
       - name: Deploy ${{ matrix.vm }}

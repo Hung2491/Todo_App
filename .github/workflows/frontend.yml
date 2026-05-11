@@ -86,7 +86,9 @@ jobs:
 
             touch .env.tags
             sed -i '/^FRONTEND_TAG=/d' .env.tags
+            sed -i '/^STATIC_TAG=/d' .env.tags
             echo "FRONTEND_TAG=v${{ github.run_number }}" >> .env.tags
+            echo "STATIC_TAG=latest" >> .env.tags
             cat .env.tags >> .env
 
             docker compose down frontend
