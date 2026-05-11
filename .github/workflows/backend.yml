@@ -10,26 +10,14 @@ on:
 
 jobs:
   build-backend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Create .env for build
-        run: |
-          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
-          echo "BACKEND_TAG=v${{ github.run_number }}" >> .env
-          echo "MONITORING_TAG=latest" >> .env
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and Push Backend
-        run: |
-          docker compose -f docker-compose.worker.yml build --no-cache backend
-          docker compose -f docker-compose.worker.yml push backend
+    uses: ./.github/workflows/build-and-push.yml
+    with:
+      build_mode: 'compose'
+      compose_file: 'docker-compose.worker.yml'
+      service: 'backend'
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
   deploy-backend:
     needs: build-backend
@@ -81,7 +69,6 @@ jobs:
           echo "------------------------------------------------------------"
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
           
-          docker compose -f docker-compose.worker.yml down backend
           docker compose -f docker-compose.worker.yml pull backend
           docker compose -f docker-compose.worker.yml up -d --force-recreate backend
 
