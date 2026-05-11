@@ -45,17 +45,14 @@ jobs:
           
       - name: Create .env
         run: |
-          cat << 'ENVEOF' > ~/project/Todo_App/.env
+          cat << 'EOF' | sed 's/^[[:space:]]*//' > ~/project/Todo_App/.env
           ${{ secrets[matrix.env] }}
-          ENVEOF
-          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> ~/project/Todo_App/.env
-          echo "BIND_IP=${{ secrets[matrix.private_ip] }}" >> ~/project/Todo_App/.env
+          BIND_IP=${{ secrets[matrix.private_ip] }}
+          DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+          EOF
           
-          touch ~/project/Todo_App/.env.tags
-          sed -i '/^BACKEND_TAG=/d' ~/project/Todo_App/.env.tags
-          sed -i '/^STATIC_TAG=/d' ~/project/Todo_App/.env.tags
-          echo "BACKEND_TAG=v${{ github.run_number }}" >> ~/project/Todo_App/.env.tags
-          echo "STATIC_TAG=latest" >> ~/project/Todo_App/.env.tags
+          sed -i -e '/^BACKEND_TAG=/d' -e '/^STATIC_TAG=/d' ~/project/Todo_App/.env.tags 2>/dev/null || touch ~/project/Todo_App/.env.tags
+          printf "BACKEND_TAG=v${{ github.run_number }}\nSTATIC_TAG=latest\n" >> ~/project/Todo_App/.env.tags
           cat ~/project/Todo_App/.env.tags >> ~/project/Todo_App/.env
 
       - name: Deploy ${{ matrix.vm }}

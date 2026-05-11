@@ -68,15 +68,14 @@ jobs:
             echo "------------------------------------------------------------"
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-            echo "${{ secrets[matrix.env] }}" > .env
-            echo "BIND_IP=${{ secrets[matrix.private_ip] }}" >> .env
-            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
-
-            touch .env.tags
-            sed -i '/^FRONTEND_TAG=/d' .env.tags
-            sed -i '/^STATIC_TAG=/d' .env.tags
-            echo "FRONTEND_TAG=v${{ github.run_number }}" >> .env.tags
-            echo "STATIC_TAG=latest" >> .env.tags
+            cat << 'EOF' | sed 's/^[[:space:]]*//' > .env
+            ${{ secrets[matrix.env] }}
+            BIND_IP=${{ secrets[matrix.private_ip] }}
+            DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+            EOF
+            
+            sed -i -e '/^FRONTEND_TAG=/d' -e '/^STATIC_TAG=/d' .env.tags 2>/dev/null || touch .env.tags
+            printf "FRONTEND_TAG=v${{ github.run_number }}\nSTATIC_TAG=latest\n" >> .env.tags
             cat .env.tags >> .env
 
             docker compose pull frontend

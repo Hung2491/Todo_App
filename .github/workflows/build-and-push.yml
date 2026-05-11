@@ -27,6 +27,8 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     steps:
       - uses: actions/checkout@v4
 
@@ -41,6 +43,9 @@ jobs:
 
       - name: Build & Push (docker compose)
         if: ${{ inputs.build_mode == 'compose' }}
+        env:
+          FRONTEND_TAG: v${{ github.run_number }}
+          BACKEND_TAG: v${{ github.run_number }}
         run: |
           docker compose -f ${{ inputs.compose_file }} build --no-cache ${{ inputs.service }}
           docker compose -f ${{ inputs.compose_file }} push ${{ inputs.service }}
