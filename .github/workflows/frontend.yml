@@ -40,11 +40,14 @@ jobs:
 
       - name: Generate Nginx Config
         env:
+          VM1_PRIVATE_IP: ${{ secrets.VM1_PRIVATE_IP }}
           VM2_PRIVATE_IP: ${{ secrets.VM2_PRIVATE_IP }}
           VM3_PRIVATE_IP: ${{ secrets.VM3_PRIVATE_IP }}
+          VM4_PRIVATE_IP: ${{ secrets.VM4_PRIVATE_IP }}
+          VM5_PRIVATE_IP: ${{ secrets.VM5_PRIVATE_IP }}
           VM_PUBLIC_IP: ${{ secrets.VM_PUBLIC_IP }}
         run: |
-          envsubst '$VM2_PRIVATE_IP,$VM3_PRIVATE_IP,$VM_PUBLIC_IP' < nginx/todo.conf.template > nginx/todo.conf
+          envsubst '${VM1_PRIVATE_IP},${VM2_PRIVATE_IP},${VM3_PRIVATE_IP},${VM4_PRIVATE_IP},${VM5_PRIVATE_IP},${VM_PUBLIC_IP}' < nginx/todo.conf.template > nginx/todo.conf
 
       - name: Copy files
         uses: appleboy/scp-action@master
