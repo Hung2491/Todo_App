@@ -16,9 +16,7 @@ jobs:
       build_mode: 'compose'
       compose_file: 'docker-compose.yml'
       service: 'frontend'
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    secrets: inherit
 
   deploy-frontend:
     runs-on: ubuntu-latest

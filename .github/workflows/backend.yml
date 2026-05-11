@@ -15,9 +15,7 @@ jobs:
       build_mode: 'compose'
       compose_file: 'docker-compose.worker.yml'
       service: 'backend'
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    secrets: inherit
 
   deploy-backend:
     needs: build-backend
