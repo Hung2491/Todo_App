@@ -47,9 +47,15 @@ jobs:
           VM5_PRIVATE_IP: ${{ secrets.VM5_PRIVATE_IP }}
           VM_PUBLIC_IP: ${{ secrets.VM_PUBLIC_IP }}
         run: |
-          envsubst '$VM1_PRIVATE_IP $VM2_PRIVATE_IP $VM3_PRIVATE_IP $VM4_PRIVATE_IP $VM5_PRIVATE_IP $VM_PUBLIC_IP' < nginx/todo.conf.template > nginx/todo.conf
-          echo "Generated todo.conf (lines 20-30):"
-          sed -n '20,30p' nginx/todo.conf
+          cp nginx/todo.conf.template nginx/todo.conf
+          sed -i "s/\${VM1_PRIVATE_IP}/${VM1_PRIVATE_IP}/g" nginx/todo.conf
+          sed -i "s/\${VM2_PRIVATE_IP}/${VM2_PRIVATE_IP}/g" nginx/todo.conf
+          sed -i "s/\${VM3_PRIVATE_IP}/${VM3_PRIVATE_IP}/g" nginx/todo.conf
+          sed -i "s/\${VM4_PRIVATE_IP}/${VM4_PRIVATE_IP}/g" nginx/todo.conf
+          sed -i "s/\${VM5_PRIVATE_IP}/${VM5_PRIVATE_IP}/g" nginx/todo.conf
+          sed -i "s/\${VM_PUBLIC_IP}/${VM_PUBLIC_IP}/g" nginx/todo.conf
+          echo "Generated todo.conf (Upstream block):"
+          sed -n '23,28p' nginx/todo.conf
 
       - name: Copy files
         uses: appleboy/scp-action@master
