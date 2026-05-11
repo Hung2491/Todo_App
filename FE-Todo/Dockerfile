@@ -13,8 +13,8 @@ FROM nginx:stable-alpine
 RUN mkdir -p /usr/share/nginx/html/todo-app
 COPY --from=build-stage /app/dist /usr/share/nginx/html/todo-app
 
-# Xóa config mặc định để tránh xung đột cổng 80
-RUN rm /etc/nginx/conf.d/default.conf
+# Xóa config mặc định và templates để tránh envsubst ghi đè file mount
+RUN rm -rf /etc/nginx/conf.d/default.conf /etc/nginx/templates
 
 EXPOSE 80 443
 CMD ["nginx", "-g", "daemon off;"]
