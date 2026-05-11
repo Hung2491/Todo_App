@@ -4,8 +4,8 @@ log_format main_with_upstream '$remote_addr - $remote_user [$time_local] "$reque
                             
 
 # ─── Rate limiting zones ─────────────────────────────────────────────────────
-limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
-limit_req_zone $binary_remote_addr zone=web_limit:10m rate=30r/s;
+# limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
+# limit_req_zone $binary_remote_addr zone=web_limit:10m rate=30r/s;
 
 # ─── Bad bot / bad method detection ──────────────────────────────────────────
 map $http_user_agent $bad_bot {
@@ -81,7 +81,8 @@ server {
 
     # ── Static frontend ───────────────────────────────────────────────────
     location / {
-        limit_req zone=web_limit burst=50 nodelay;
+        # ── Rate Limiting (Disabled temporarily to fix startup issues) ──────────
+        # limit_req zone=web_limit burst=50 nodelay;
         root  /usr/share/nginx/html/todo-app;
         index index.html;
         try_files $uri $uri/ /index.html;
@@ -95,7 +96,7 @@ server {
 
     # ── API proxy ─────────────────────────────────────────────────────────
     location /tasks {
-        limit_req zone=api_limit burst=20 nodelay;
+        # limit_req zone=api_limit burst=20 nodelay;
         proxy_pass http://backend_cluster;
 
         proxy_http_version 1.1;
