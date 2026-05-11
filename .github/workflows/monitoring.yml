@@ -87,6 +87,12 @@ jobs:
             ${{ secrets.ENV_FILE_VM }}
             BIND_IP=${{ secrets[matrix.ip] }}
             DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+            VM1_PRIVATE_IP=${{ secrets.VM1_PRIVATE_IP }}
+            VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}
+            VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}
+            VM4_PRIVATE_IP=${{ secrets.VM4_PRIVATE_IP }}
+            VM5_PRIVATE_IP=${{ secrets.VM5_PRIVATE_IP }}
+            VM_PUBLIC_IP=${{ secrets.VM_PUBLIC_IP }}
             EOF
             sed -i -e '/^MONITORING_TAG=/d' -e '/^STATIC_TAG=/d' .env.tags 2>/dev/null || touch .env.tags
             printf "MONITORING_TAG=v${{ github.run_number }}\nSTATIC_TAG=latest\n" >> .env.tags
@@ -114,6 +120,12 @@ jobs:
           ${{ secrets.ENV_FILE_VM }}
           BIND_IP=${{ secrets[matrix.ip] }}
           DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+          VM1_PRIVATE_IP=${{ secrets.VM1_PRIVATE_IP }}
+          VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}
+          VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}
+          VM4_PRIVATE_IP=${{ secrets.VM4_PRIVATE_IP }}
+          VM5_PRIVATE_IP=${{ secrets.VM5_PRIVATE_IP }}
+          VM_PUBLIC_IP=${{ secrets.VM_PUBLIC_IP }}
           EOF
           sed -i -e '/^MONITORING_TAG=/d' -e '/^STATIC_TAG=/d' .env.tags 2>/dev/null || touch .env.tags
           printf "MONITORING_TAG=v${{ github.run_number }}\nSTATIC_TAG=latest\n" >> .env.tags
