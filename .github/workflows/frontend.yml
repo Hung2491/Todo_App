@@ -35,6 +35,8 @@ jobs:
             key: VM5_SSH_KEY
             env: ENV_FILE_VM
             private_ip: VM5_PRIVATE_IP
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Generate Nginx Config
         env:
