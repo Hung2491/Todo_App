@@ -98,7 +98,7 @@ jobs:
             printf "MONITORING_TAG=v${{ github.run_number }}\nSTATIC_TAG=latest\n" >> .env.tags
             cat .env.tags >> .env
             docker compose pull prometheus alertmanager grafana cadvisor node-exporter
-            docker compose up -d --force-recreate --remove-orphans prometheus alertmanager grafana cadvisor node-exporter
+            docker compose up -d --force-recreate prometheus alertmanager grafana cadvisor node-exporter
             docker image prune -af --filter "until=24h"
 
   deploy-workers:
