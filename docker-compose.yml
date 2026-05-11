@@ -11,15 +11,10 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/todo.conf.template:/etc/nginx/templates/todo.conf.template:ro
+      - ./nginx/todo.conf:/etc/nginx/conf.d/todo.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /var/www/certbot:/var/www/certbot:ro
       - /var/log/nginx:/var/log/nginx
-    environment:
-      - VM2_PRIVATE_IP=${VM2_PRIVATE_IP}
-      - VM3_PRIVATE_IP=${VM3_PRIVATE_IP}
-      - VM_PUBLIC_IP=${VM_PUBLIC_IP}
-      - NGINX_ENVSUBST_FILTER=VM2_PRIVATE_IP|VM3_PRIVATE_IP|VM_PUBLIC_IP
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://localhost/health > /dev/null || exit 1" ]
       interval: 30s
