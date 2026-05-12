@@ -26,7 +26,9 @@ jobs:
         with:
           context: ./FE-Todo
           push: true
-          tags: ${{ env.IMAGE_FRONTEND }}:latest
+          tags: |
+            ${{ env.IMAGE_FRONTEND }}:latest
+            ${{ env.IMAGE_FRONTEND }}:v${{ github.run_number }}
           cache-from: type=registry,ref=${{ env.IMAGE_FRONTEND }}:cache
           cache-to:   type=registry,ref=${{ env.IMAGE_FRONTEND }}:cache,mode=max
 
@@ -44,7 +46,9 @@ jobs:
         with:
           context: ./BE-Todo
           push: true
-          tags: ${{ env.IMAGE_BACKEND }}:latest
+          tags: |
+            ${{ env.IMAGE_BACKEND }}:latest
+            ${{ env.IMAGE_BACKEND }}:v${{ github.run_number }}
           cache-from: type=registry,ref=${{ env.IMAGE_BACKEND }}:cache
           cache-to:   type=registry,ref=${{ env.IMAGE_BACKEND }}:cache,mode=max
 
