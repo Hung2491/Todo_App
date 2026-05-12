@@ -17,10 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Create .env
-        run: |
-          echo "${{ secrets.ENV_FILE_VM }}" > .env
-          echo "SERVER_USER=${{ secrets.SERVER_USER }}" >> .env
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -39,10 +35,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Create .env
-        run: |
-          echo "${{ secrets.ENV_FILE_VM }}" > .env
-          echo "SERVER_USER=${{ secrets.SERVER_USER }}" >> .env
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -67,95 +59,72 @@ jobs:
       fail-fast: false
       matrix:
         vm: [vm1, vm5]
+        include:
+          - vm: vm1
+            host_secret: VM1_HOST
+            key_secret:  VM1_SSH_KEY
+            env_secret:  ENV_FILE_VM
+          - vm: vm5
+            host_secret: VM5_HOST
+            key_secret:  VM5_SSH_KEY
+            env_secret:  ENV_FILE_VM
     steps:
       - uses: actions/checkout@v4
 
       - name: Render monitoring configs
         env:
+          VM1_PRIVATE_IP:     ${{ secrets.VM1_PRIVATE_IP }}
           VM2_PRIVATE_IP:     ${{ secrets.VM2_PRIVATE_IP }}
           VM3_PRIVATE_IP:     ${{ secrets.VM3_PRIVATE_IP }}
           VM4_PRIVATE_IP:     ${{ secrets.VM4_PRIVATE_IP }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
-          VM1_PRIVATE_IP:     ${{ secrets.VM1_PRIVATE_IP }}
           VM5_PRIVATE_IP:     ${{ secrets.VM5_PRIVATE_IP }}
           VM_PUBLIC_IP:       ${{ secrets.VM_PUBLIC_IP }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           for f in monitoring/prometheus/prometheus.yml monitoring/alertmanager/alertmanager.yml; do
             [ -f "$f" ] || { echo "ERROR: $f not found"; exit 1; }
             envsubst < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
           done
 
-      # ── VM1 steps ──────────────────────────────────────────────────────────
-      - name: "SCP → vm1"
-        if: matrix.vm == 'vm1'
+      - name: Copy files to ${{ matrix.vm }}
         uses: appleboy/scp-action@master
         with:
-          host:     ${{ secrets.VM1_HOST }}
+          host:     ${{ secrets[matrix.host_secret] }}
           username: ${{ secrets.SERVER_USER }}
-          key:      ${{ secrets.VM1_SSH_KEY }}
+          key:      ${{ secrets[matrix.key_secret] }}
           port:     ${{ secrets.SERVER_PORT }}
           source:   "docker-compose.yml,nginx/,monitoring/"
           target:   "~/project/Todo_App"
 
-      - name: "Deploy vm1"
-        if: matrix.vm == 'vm1'
+      - name: SSH Deploy ${{ matrix.vm }}
         uses: appleboy/ssh-action@master
         with:
-          host:     ${{ secrets.VM1_HOST }}
+          host:     ${{ secrets[matrix.host_secret] }}
           username: ${{ secrets.SERVER_USER }}
-          key:      ${{ secrets.VM1_SSH_KEY }}
+          key:      ${{ secrets[matrix.key_secret] }}
           port:     ${{ secrets.SERVER_PORT }}
           script: |
             set -e
             cd ~/project/Todo_App
+            
+            docker compose down --remove-orphans || true
+            docker ps -q | xargs -r docker stop || true
+            docker ps -aq | xargs -r docker rm -f || true
+            docker image prune -af || true
+
             printf '%s\n' "$ENV_CONTENT" > .env
             echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-            docker compose down || true
             docker compose pull
             docker compose up -d --force-recreate --remove-orphans
             docker image prune -f
         env:
-          ENV_CONTENT:        ${{ secrets.ENV_FILE_VM }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
-
-      # ── VM5 steps ──────────────────────────────────────────────────────────
-      - name: "SCP → vm5"
-        if: matrix.vm == 'vm5'
-        uses: appleboy/scp-action@master
-        with:
-          host:     ${{ secrets.VM5_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key:      ${{ secrets.VM5_SSH_KEY }}
-          port:     ${{ secrets.SERVER_PORT }}
-          source:   "docker-compose.yml,nginx/,monitoring/"
-          target:   "~/project/Todo_App"
-
-      - name: "Deploy vm5"
-        if: matrix.vm == 'vm5'
-        uses: appleboy/ssh-action@master
-        with:
-          host:     ${{ secrets.VM5_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key:      ${{ secrets.VM5_SSH_KEY }}
-          port:     ${{ secrets.SERVER_PORT }}
-          script: |
-            set -e
-            cd ~/project/Todo_App
-            printf '%s\n' "$ENV_CONTENT" > .env
-            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-            docker compose down || true
-            docker compose pull
-            docker compose up -d --force-recreate --remove-orphans
-            docker image prune -f
-        env:
-          ENV_CONTENT:        ${{ secrets.ENV_FILE_VM }}
+          ENV_CONTENT:        ${{ secrets[matrix.env_secret] }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DEPLOY WORKERS — VM2 & VM3 (self-hosted runners)
+# DEPLOY WORKERS — VM2 & VM3 song song (self-hosted runners)
 # ─────────────────────────────────────────────────────────────────────────────
   deploy-vm2:
     name: "Deploy vm2 — BE + Mongo Secondary"
@@ -163,16 +132,18 @@ jobs:
     needs: [build-frontend, build-backend]
     steps:
       - uses: actions/checkout@v4
-      - name: Write .env & Deploy
+      - name: "Cleanup & Deploy"
         run: |
           set -e
-          # Dọn dẹp sạch sẽ bằng compose down
-          docker compose -f docker-compose.worker.yml down || true
-          
+          docker compose -f docker-compose.worker.yml down --remove-orphans || true
+          docker ps -q | xargs -r docker stop || true
+          docker ps -aq | xargs -r docker rm -f || true
+          docker image prune -af || true
+
           printf '%s\n' "$ENV_CONTENT" > .env
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
           docker compose -f docker-compose.worker.yml pull
-          docker compose -f docker-compose.worker.yml up -d --force-recreate --remove-orphans
+          docker compose -f docker-compose.worker.yml up -d --remove-orphans
           docker image prune -f
         env:
           ENV_CONTENT:        ${{ secrets.ENV_FILE_VM }}
@@ -185,16 +156,18 @@ jobs:
     needs: [build-frontend, build-backend]
     steps:
       - uses: actions/checkout@v4
-      - name: Write .env & Deploy
+      - name: "Cleanup & Deploy"
         run: |
           set -e
-          # Dọn dẹp sạch sẽ bằng compose down
-          docker compose -f docker-compose.worker.yml down || true
-          
+          docker compose -f docker-compose.worker.yml down --remove-orphans || true
+          docker ps -q | xargs -r docker stop || true
+          docker ps -aq | xargs -r docker rm -f || true
+          docker image prune -af || true
+
           printf '%s\n' "$ENV_CONTENT" > .env
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
           docker compose -f docker-compose.worker.yml pull
-          docker compose -f docker-compose.worker.yml up -d --force-recreate --remove-orphans
+          docker compose -f docker-compose.worker.yml up -d --remove-orphans
           docker image prune -f
         env:
           ENV_CONTENT:        ${{ secrets.ENV_FILE_VM }}
