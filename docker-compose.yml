@@ -1,6 +1,8 @@
 services:
 
   frontend:
+    build:
+      context: ./FE-Todo
     image: ${DOCKERHUB_USERNAME}/todo-app-frontend:latest
     container_name: todo-app-frontend
     restart: always

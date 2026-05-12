@@ -1,6 +1,8 @@
 services:
 
   backend:
+    build:
+      context: ./BE-Todo
     image: ${DOCKERHUB_USERNAME}/todo-app-backend:latest
     container_name: todo-app-backend
     restart: always
