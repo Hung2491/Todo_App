@@ -24,12 +24,12 @@ jobs:
       - name: Build & Push Frontend
         run: |
           docker compose -f docker-compose.yml build --no-cache frontend
-          docker compose -f docker-compose.yml push frontend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-frontend:latest
 
       - name: Build & Push Backend
         run: |
           docker compose -f docker-compose.worker.yml build --no-cache backend
-          docker compose -f docker-compose.worker.yml push backend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-backend:latest
 
 # ─── 2. DEPLOY VM1 + VM5 (matrix, SSH) ───────────────────────────────────────
   deploy-lb:
