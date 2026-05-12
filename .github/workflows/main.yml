@@ -106,6 +106,10 @@ jobs:
             
             printf "%s\n" "$ENV_CONTENT" > .env
             echo "DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME" >> .env
+            echo "FRONTEND_TAG=v${{ github.run_number }}" >> .env
+            echo "BACKEND_TAG=v${{ github.run_number }}" >> .env
+            echo "MONITORING_TAG=latest" >> .env
+            echo "STATIC_TAG=latest" >> .env
             
             echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
             docker compose pull
@@ -139,6 +143,9 @@ jobs:
         run: |
           set -e
           printf '%s\n' "$ENV_CONTENT" > .env
+          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+          echo "BACKEND_TAG=v${{ github.run_number }}" >> .env
+          echo "STATIC_TAG=latest" >> .env
           
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | \
             docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
