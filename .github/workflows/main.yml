@@ -4,163 +4,137 @@ on:
   push:
     branches: ["main"]
 
-env:
-  IMAGE_FRONTEND: ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-frontend
-  IMAGE_BACKEND:  ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-backend
-
+# ─── 1. BUILD & PUSH ──────────────────────────────────────────────────────────
 jobs:
-# ─────────────────────────────────────────────────────────────────────────────
-# BUILD — FE & BE song song
-# ─────────────────────────────────────────────────────────────────────────────
-  build-frontend:
-    name: "Build & Push Frontend"
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+
+      - name: Tạo .env cho build
+        run: |
+          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - uses: docker/build-push-action@v5
-        with:
-          context: ./FE-Todo
-          push: true
-          tags: ${{ env.IMAGE_FRONTEND }}:latest
-          cache-from: type=registry,ref=${{ env.IMAGE_FRONTEND }}:cache
-          cache-to:   type=registry,ref=${{ env.IMAGE_FRONTEND }}:cache,mode=max
 
-  build-backend:
-    name: "Build & Push Backend"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - uses: docker/build-push-action@v5
-        with:
-          context: ./BE-Todo
-          push: true
-          tags: ${{ env.IMAGE_BACKEND }}:latest
-          cache-from: type=registry,ref=${{ env.IMAGE_BACKEND }}:cache
-          cache-to:   type=registry,ref=${{ env.IMAGE_BACKEND }}:cache,mode=max
+      - name: Build & Push Frontend
+        run: |
+          docker compose -f docker-compose.yml build --no-cache frontend
+          docker compose -f docker-compose.yml push frontend
 
-# ─────────────────────────────────────────────────────────────────────────────
-# DEPLOY LB — VM1 & VM5 song song (self-hosted runners)
-# ─────────────────────────────────────────────────────────────────────────────
+      - name: Build & Push Backend
+        run: |
+          docker compose -f docker-compose.worker.yml build --no-cache backend
+          docker compose -f docker-compose.worker.yml push backend
+
+# ─── 2. DEPLOY VM1 + VM5 (matrix, SSH vào chạy thẳng) ───────────────────────
   deploy-lb:
-    name: "Deploy ${{ matrix.vm }} (LB + FE + Monitor)"
-    needs: [build-frontend, build-backend]
+    runs-on: ubuntu-latest
+    needs: build-and-push
     strategy:
-      fail-fast: false
+      fail-fast: false          # VM còn lại vẫn deploy dù 1 VM lỗi
       matrix:
         include:
           - vm: vm1
-            runner: [self-hosted, linux, vm1]
+            host_secret: VM1_HOST
+            ssh_key_secret: VM1_SSH_KEY
+            env_secret: ENV_FILE_VM
           - vm: vm5
-            runner: [self-hosted, linux, vm5]
-    runs-on: ${{ matrix.runner }}
+            host_secret: VM5_HOST
+            ssh_key_secret: VM5_SSH_KEY
+            env_secret: ENV_FILE_VM
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Render monitoring configs
+      - name: Tạo .env cho ${{ matrix.vm }}
+        run: |
+          echo "${{ secrets[matrix.env_secret] }}" > .env
+
+      - name: Generate Monitoring Configs
         env:
-          VM1_PRIVATE_IP:     ${{ secrets.VM1_PRIVATE_IP }}
-          VM2_PRIVATE_IP:     ${{ secrets.VM2_PRIVATE_IP }}
-          VM3_PRIVATE_IP:     ${{ secrets.VM3_PRIVATE_IP }}
-          VM4_PRIVATE_IP:     ${{ secrets.VM4_PRIVATE_IP }}
-          VM5_PRIVATE_IP:     ${{ secrets.VM5_PRIVATE_IP }}
-          VM_PUBLIC_IP:       ${{ secrets.VM_PUBLIC_IP }}
+          VM2_PRIVATE_IP: ${{ secrets.VM2_PRIVATE_IP }}
+          VM3_PRIVATE_IP: ${{ secrets.VM3_PRIVATE_IP }}
+          VM4_PRIVATE_IP: ${{ secrets.VM4_PRIVATE_IP }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          for f in monitoring/prometheus.yml monitoring/alertmanager.yml; do
-            [ -f "$f" ] || { echo "ERROR: $f not found"; exit 1; }
-            envsubst < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
-          done
+          envsubst < monitoring/prometheus.yml    > monitoring/prometheus.rendered.yml
+          mv monitoring/prometheus.rendered.yml     monitoring/prometheus.yml
+          envsubst < monitoring/alertmanager.yml  > monitoring/alertmanager.rendered.yml
+          mv monitoring/alertmanager.rendered.yml   monitoring/alertmanager.yml
 
-      - name: Cleanup
-        run: |
-          docker compose -f "$GITHUB_WORKSPACE/docker-compose.yml" down --remove-orphans || true
-          docker ps -aq | xargs -r docker rm -f || true
-          docker image prune -af || true
+      - name: Copy files lên ${{ matrix.vm }}
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets[matrix.host_secret] }}
+          key: ${{ secrets[matrix.ssh_key_secret] }}
+          source: "docker-compose.yml,.env,nginx/,monitoring/"
+          target: "~/project/Todo_App"
 
-      - name: Deploy
-        run: |
-          set -e
-          # Ghi .env vào workspace — docker compose đọc từ đây
-          printf '%s\n' "$ENV_CONTENT"                    > "$GITHUB_WORKSPACE/.env"
-          echo "DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME"  >> "$GITHUB_WORKSPACE/.env"
-          echo "VM2_PRIVATE_IP=$VM2_PRIVATE_IP"          >> "$GITHUB_WORKSPACE/.env"
-          echo "VM3_PRIVATE_IP=$VM3_PRIVATE_IP"          >> "$GITHUB_WORKSPACE/.env"
-          echo "VM_PUBLIC_IP=$VM_PUBLIC_IP"              >> "$GITHUB_WORKSPACE/.env"
+      - name: Deploy ${{ matrix.vm }}
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets[matrix.host_secret] }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets[matrix.ssh_key_secret] }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            set -e
+            cd ~/project/Todo_App
 
-          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | \
+              docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-          docker compose -f "$GITHUB_WORKSPACE/docker-compose.yml" pull
-          docker compose -f "$GITHUB_WORKSPACE/docker-compose.yml" up -d --remove-orphans
-          docker image prune -f
-        env:
-          ENV_CONTENT:        ${{ secrets.ENV_FILE_VM }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
-          VM2_PRIVATE_IP:     ${{ secrets.VM2_PRIVATE_IP }}
-          VM3_PRIVATE_IP:     ${{ secrets.VM3_PRIVATE_IP }}
-          VM_PUBLIC_IP:       ${{ secrets.VM_PUBLIC_IP }}
+            docker compose pull
+            docker compose up -d --force-recreate --remove-orphans
+            docker image prune -f
 
-# ─────────────────────────────────────────────────────────────────────────────
-# DEPLOY WORKERS — VM2 & VM3 song song (self-hosted runners)
-# ─────────────────────────────────────────────────────────────────────────────
-  deploy-worker:
-    name: "Deploy ${{ matrix.vm }} (BE + Mongo Secondary)"
-    needs: [build-frontend, build-backend]
+            # Verify
+            sleep 5
+            docker compose ps
+
+# ─── 3. DEPLOY VM2 + VM3 (matrix, self-hosted runner) ───────────────────────
+  deploy-workers:
+    needs: build-and-push
     strategy:
       fail-fast: false
       matrix:
         include:
           - vm: vm2
-            runner: [self-hosted, linux, vm2]
+            runner: '["self-hosted","linux","vm2"]'
+            env_secret: ENV_FILE_VM2
           - vm: vm3
-            runner: [self-hosted, linux, vm3]
-    runs-on: ${{ matrix.runner }}
+            runner: '["self-hosted","linux","vm3"]'
+            env_secret: ENV_FILE_VM3
+
+    runs-on: ${{ fromJson(matrix.runner) }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Mongo keyfile
+      - name: Tạo .env cho ${{ matrix.vm }}
         run: |
-          printf '%s\n' "$MONGO_KEYFILE" | sudo tee /etc/mongo-keyfile > /dev/null
-          sudo chmod 400 /etc/mongo-keyfile
-          sudo chown 999:999 /etc/mongo-keyfile || true
-        env:
-          MONGO_KEYFILE: ${{ secrets.MONGO_KEYFILE }}
+          cat << 'ENVEOF' > .env
+          ${{ secrets[matrix.env_secret] }}
+          ENVEOF
+          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
 
-      - name: Cleanup
-        run: |
-          docker compose -f "$GITHUB_WORKSPACE/docker-compose.worker.yml" down --remove-orphans || true
-          docker ps -aq | xargs -r docker rm -f || true
-          docker image prune -af || true
-
-      - name: Deploy
+      - name: Deploy ${{ matrix.vm }}
         run: |
           set -e
-          printf '%s\n' "$ENV_CONTENT"                    > "$GITHUB_WORKSPACE/.env"
-          echo "DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME"  >> "$GITHUB_WORKSPACE/.env"
-          echo "VM2_PRIVATE_IP=$VM2_PRIVATE_IP"          >> "$GITHUB_WORKSPACE/.env"
-          echo "VM3_PRIVATE_IP=$VM3_PRIVATE_IP"          >> "$GITHUB_WORKSPACE/.env"
-          echo "VM4_PRIVATE_IP=$VM4_PRIVATE_IP"          >> "$GITHUB_WORKSPACE/.env"
+          cd ~/project/Todo_App
 
-          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | \
+            docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-          docker compose -f "$GITHUB_WORKSPACE/docker-compose.worker.yml" pull
-          docker compose -f "$GITHUB_WORKSPACE/docker-compose.worker.yml" up -d --remove-orphans
+          docker compose -f docker-compose.worker.yml pull
+          docker compose -f docker-compose.worker.yml up -d --force-recreate --remove-orphans
           docker image prune -f
-        env:
-          ENV_CONTENT:        ${{ secrets.ENV_FILE_VM }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
-          VM2_PRIVATE_IP:     ${{ secrets.VM2_PRIVATE_IP }}
-          VM3_PRIVATE_IP:     ${{ secrets.VM3_PRIVATE_IP }}
-          VM4_PRIVATE_IP:     ${{ secrets.VM4_PRIVATE_IP }}
+
+          # Verify
+          sleep 5
+          docker compose -f docker-compose.worker.yml ps
