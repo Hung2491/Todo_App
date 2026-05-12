@@ -57,11 +57,11 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          ls monitoring/
-          envsubst < monitoring/prometheus.yml   > monitoring/prometheus.rendered.yml
-          mv monitoring/prometheus.rendered.yml    monitoring/prometheus.yml
-          envsubst < monitoring/alertmanager.yml > monitoring/alertmanager.rendered.yml
-          mv monitoring/alertmanager.rendered.yml  monitoring/alertmanager.yml
+          ls -R monitoring/
+          envsubst < monitoring/prometheus/prometheus.yml    > monitoring/prometheus/prometheus.rendered.yml
+          mv monitoring/prometheus/prometheus.rendered.yml     monitoring/prometheus/prometheus.yml
+          envsubst < monitoring/alertmanager/alertmanager.yml  > monitoring/alertmanager/alertmanager.rendered.yml
+          mv monitoring/alertmanager/alertmanager.rendered.yml   monitoring/alertmanager.yml
 
       - name: Tạo .env cho ${{ matrix.vm }}
         run: |
