@@ -31,29 +31,23 @@ jobs:
           docker compose -f docker-compose.worker.yml build --no-cache backend
           docker compose -f docker-compose.worker.yml push backend
 
-# ─── 2. DEPLOY VM1 + VM5 (matrix, SSH vào chạy thẳng) ───────────────────────
+# ─── 2. DEPLOY VM1 + VM5 (matrix, SSH) ───────────────────────────────────────
   deploy-lb:
     runs-on: ubuntu-latest
     needs: build-and-push
     strategy:
-      fail-fast: false          # VM còn lại vẫn deploy dù 1 VM lỗi
+      fail-fast: false
       matrix:
         include:
           - vm: vm1
             host_secret: VM1_HOST
             ssh_key_secret: VM1_SSH_KEY
-            env_secret: ENV_FILE_VM1
           - vm: vm5
             host_secret: VM5_HOST
             ssh_key_secret: VM5_SSH_KEY
-            env_secret: ENV_FILE_VM5
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Tạo .env cho ${{ matrix.vm }}
-        run: |
-          echo "${{ secrets[matrix.env_secret] }}" > .env
 
       - name: Generate Monitoring Configs
         env:
@@ -63,10 +57,20 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          envsubst < monitoring/prometheus.yml    > monitoring/prometheus.rendered.yml
-          mv monitoring/prometheus.rendered.yml     monitoring/prometheus.yml
-          envsubst < monitoring/alertmanager.yml  > monitoring/alertmanager.rendered.yml
-          mv monitoring/alertmanager.rendered.yml   monitoring/alertmanager.yml
+          ls monitoring/
+          envsubst < monitoring/prometheus.yml   > monitoring/prometheus.rendered.yml
+          mv monitoring/prometheus.rendered.yml    monitoring/prometheus.yml
+          envsubst < monitoring/alertmanager.yml > monitoring/alertmanager.rendered.yml
+          mv monitoring/alertmanager.rendered.yml  monitoring/alertmanager.yml
+
+      - name: Tạo .env cho ${{ matrix.vm }}
+        run: |
+          cat > .env << EOF
+          DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+          VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}
+          VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}
+          VM1_PUBLIC_IP=${{ secrets.VM1_HOST }}
+          EOF
 
       - name: Copy files lên ${{ matrix.vm }}
         uses: appleboy/scp-action@master
@@ -96,7 +100,6 @@ jobs:
             docker compose up -d --force-recreate --remove-orphans
             docker image prune -f
 
-            # Verify
             sleep 5
             docker compose ps
 
@@ -109,10 +112,8 @@ jobs:
         include:
           - vm: vm2
             runner: '["self-hosted","linux","vm2"]'
-            env_secret: ENV_FILE_VM
           - vm: vm3
             runner: '["self-hosted","linux","vm3"]'
-            env_secret: ENV_FILE_VM
 
     runs-on: ${{ fromJson(matrix.runner) }}
     steps:
@@ -120,10 +121,14 @@ jobs:
 
       - name: Tạo .env cho ${{ matrix.vm }}
         run: |
-          cat << 'ENVEOF' > .env
-          ${{ secrets[matrix.env_secret] }}
-          ENVEOF
-          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+          cat > .env << EOF
+          DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+          MONGO_USER=${{ secrets.MONGO_USER }}
+          MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }}
+          VM4_PRIVATE_IP=${{ secrets.VM4_PRIVATE_IP }}
+          VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}
+          VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}
+          EOF
 
       - name: Deploy ${{ matrix.vm }}
         run: |
@@ -133,10 +138,11 @@ jobs:
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | \
             docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
+          cp $GITHUB_WORKSPACE/.env .env
+
           docker compose -f docker-compose.worker.yml pull
           docker compose -f docker-compose.worker.yml up -d --force-recreate --remove-orphans
           docker image prune -f
 
-          # Verify
           sleep 5
           docker compose -f docker-compose.worker.yml ps
