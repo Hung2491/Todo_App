@@ -77,7 +77,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          for f in monitoring/prometheus.yml monitoring/alertmanager.yml; do
+          for f in monitoring/prometheus/prometheus.yml monitoring/alertmanager/alertmanager.yml; do
             [ -f "$f" ] || { echo "ERROR: $f not found"; exit 1; }
             envsubst < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
           done
