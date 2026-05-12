@@ -1,0 +1,150 @@
+name: CI/CD Docker Deploy
+
+on:
+  push:
+    branches: ["main"]
+
+env:
+  IMAGE_FRONTEND: ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-frontend
+  IMAGE_BACKEND:  ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-backend
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BUILD — FE & BE song song
+# ─────────────────────────────────────────────────────────────────────────────
+jobs:
+  build-frontend:
+    name: Build & Push Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./FE-Todo
+          push: true
+          tags: ${{ env.IMAGE_FRONTEND }}:latest
+          cache-from: type=registry,ref=${{ env.IMAGE_FRONTEND }}:cache
+          cache-to:   type=registry,ref=${{ env.IMAGE_FRONTEND }}:cache,mode=max
+
+  build-backend:
+    name: Build & Push Backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./BE-Todo
+          push: true
+          tags: ${{ env.IMAGE_BACKEND }}:latest
+          cache-from: type=registry,ref=${{ env.IMAGE_BACKEND }}:cache
+          cache-to:   type=registry,ref=${{ env.IMAGE_BACKEND }}:cache,mode=max
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEPLOY LB — VM1 & VM5
+# ─────────────────────────────────────────────────────────────────────────────
+  deploy-lb:
+    name: Deploy ${{ matrix.vm }} (LB + FE + Monitor)
+    runs-on: ubuntu-latest
+    needs: [build-frontend, build-backend]
+    strategy:
+      matrix:
+        vm: [vm1, vm5]
+        include:
+          - vm: vm1
+            host_secret: VM1_HOST
+            key_secret:  VM1_SSH_KEY
+          - vm: vm5
+            host_secret: VM5_HOST
+            key_secret:  VM5_SSH_KEY
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Render monitoring configs
+        shell: bash
+        env:
+          VM2_PRIVATE_IP:     ${{ secrets.VM2_PRIVATE_IP }}
+          VM3_PRIVATE_IP:     ${{ secrets.VM3_PRIVATE_IP }}
+          VM4_PRIVATE_IP:     ${{ secrets.VM4_PRIVATE_IP }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          for f in monitoring/prometheus.yml monitoring/alertmanager.yml; do
+            if [ -f "$f" ]; then
+              envsubst < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+            fi
+          done
+
+      - name: Copy files to ${{ matrix.vm }}
+        uses: appleboy/scp-action@master
+        with:
+          host:     ${{ secrets[matrix.host_secret] }}
+          username: ${{ secrets.SERVER_USER }}
+          key:      ${{ secrets[matrix.key_secret] }}
+          port:     ${{ secrets.SERVER_PORT }}
+          source:   "docker-compose.yml,nginx/,monitoring/"
+          target:   "~/project/Todo_App"
+
+      - name: SSH Deploy ${{ matrix.vm }}
+        uses: appleboy/ssh-action@master
+        with:
+          host:     ${{ secrets[matrix.host_secret] }}
+          username: ${{ secrets.SERVER_USER }}
+          key:      ${{ secrets[matrix.key_secret] }}
+          port:     ${{ secrets.SERVER_PORT }}
+          script: |
+            set -e
+            cd ~/project/Todo_App
+            
+            printf "%s\n" "$ENV_CONTENT" > .env
+            echo "DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME" >> .env
+            
+            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            docker compose pull
+            docker compose up -d --force-recreate --remove-orphans
+            docker image prune -f
+        env:
+          ENV_CONTENT:        ${{ secrets.ENV_FILE_VM }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEPLOY WORKERS — VM2 & VM3 (Self-hosted)
+# ─────────────────────────────────────────────────────────────────────────────
+  deploy-worker:
+    name: Deploy ${{ matrix.vm }} (BE + Mongo Secondary)
+    needs: [build-frontend, build-backend]
+    strategy:
+      matrix:
+        vm: [vm2, vm3]
+        include:
+          - vm: vm2
+            runs_on: ["self-hosted", "linux", "vm2"]
+          - vm: vm3
+            runs_on: ["self-hosted", "linux", "vm3"]
+    runs-on: ${{ matrix.runs_on }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write .env and Deploy
+        shell: bash
+        run: |
+          set -e
+          printf '%s\n' "$ENV_CONTENT" > .env
+          
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | \
+            docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          
+          docker compose -f docker-compose.worker.yml pull
+          docker compose -f docker-compose.worker.yml up -d --force-recreate --remove-orphans
+          docker image prune -f
+        env:
+          ENV_CONTENT: ${{ secrets.ENV_FILE_VM }}
