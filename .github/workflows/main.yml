@@ -26,9 +26,7 @@ jobs:
         with:
           context: ./FE-Todo
           push: true
-          tags: |
-            ${{ env.IMAGE_FRONTEND }}:latest
-            ${{ env.IMAGE_FRONTEND }}:v${{ github.run_number }}
+          tags: ${{ env.IMAGE_FRONTEND }}:latest
           cache-from: type=registry,ref=${{ env.IMAGE_FRONTEND }}:cache
           cache-to:   type=registry,ref=${{ env.IMAGE_FRONTEND }}:cache,mode=max
 
@@ -46,14 +44,12 @@ jobs:
         with:
           context: ./BE-Todo
           push: true
-          tags: |
-            ${{ env.IMAGE_BACKEND }}:latest
-            ${{ env.IMAGE_BACKEND }}:v${{ github.run_number }}
+          tags: ${{ env.IMAGE_BACKEND }}:latest
           cache-from: type=registry,ref=${{ env.IMAGE_BACKEND }}:cache
           cache-to:   type=registry,ref=${{ env.IMAGE_BACKEND }}:cache,mode=max
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DEPLOY LB — VM1 & VM5
+# DEPLOY LB — VM1 & VM5 song song (cùng ENV_FILE_VM)
 # ─────────────────────────────────────────────────────────────────────────────
   deploy-lb:
     name: Deploy ${{ matrix.vm }} (LB + FE + Monitor)
@@ -61,19 +57,17 @@ jobs:
     needs: [build-frontend, build-backend]
     strategy:
       matrix:
-        vm: [vm1, vm5]
         include:
           - vm: vm1
-            host_secret: VM1_HOST
-            key_secret:  VM1_SSH_KEY
+            host:  VM1_HOST 
+            ssh_key: VM1_SSH_KEY
           - vm: vm5
-            host_secret: VM5_HOST
-            key_secret:  VM5_SSH_KEY
+            host:  VM5_HOST 
+            ssh_key: VM5_SSH_KEY
     steps:
       - uses: actions/checkout@v4
 
       - name: Render monitoring configs
-        shell: bash
         env:
           VM2_PRIVATE_IP:     ${{ secrets.VM2_PRIVATE_IP }}
           VM3_PRIVATE_IP:     ${{ secrets.VM3_PRIVATE_IP }}
@@ -82,17 +76,15 @@ jobs:
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           for f in monitoring/prometheus.yml monitoring/alertmanager.yml; do
-            if [ -f "$f" ]; then
-              envsubst < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
-            fi
+            envsubst < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
           done
 
       - name: Copy files to ${{ matrix.vm }}
         uses: appleboy/scp-action@master
         with:
-          host:     ${{ secrets[matrix.host_secret] }}
+          host:     ${{ secrets[matrix.host] }}
           username: ${{ secrets.SERVER_USER }}
-          key:      ${{ secrets[matrix.key_secret] }}
+          key:      ${{ secrets[matrix.ssh_key] }}
           port:     ${{ secrets.SERVER_PORT }}
           source:   "docker-compose.yml,nginx/,monitoring/"
           target:   "~/project/Todo_App"
@@ -100,21 +92,14 @@ jobs:
       - name: SSH Deploy ${{ matrix.vm }}
         uses: appleboy/ssh-action@master
         with:
-          host:     ${{ secrets[matrix.host_secret] }}
+          host:     ${{ secrets[matrix.host] }}
           username: ${{ secrets.SERVER_USER }}
-          key:      ${{ secrets[matrix.key_secret] }}
+          key:      ${{ secrets[matrix.ssh_key] }}
           port:     ${{ secrets.SERVER_PORT }}
           script: |
             set -e
             cd ~/project/Todo_App
-            
-            printf "%s\n" "$ENV_CONTENT" > .env
-            echo "DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME" >> .env
-            echo "FRONTEND_TAG=v${{ github.run_number }}" >> .env
-            echo "BACKEND_TAG=v${{ github.run_number }}" >> .env
-            echo "MONITORING_TAG=latest" >> .env
-            echo "STATIC_TAG=latest" >> .env
-            
+            printf '%s\n' "$ENV_CONTENT" > .env
             echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
             docker compose pull
             docker compose up -d --force-recreate --remove-orphans
@@ -125,37 +110,42 @@ jobs:
           DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DEPLOY WORKERS — VM2 & VM3 (Self-hosted)
+# DEPLOY WORKERS — VM2 & VM3 song song (cùng ENV_FILE_VM, self-hosted)
 # ─────────────────────────────────────────────────────────────────────────────
-  deploy-worker:
-    name: Deploy ${{ matrix.vm }} (BE + Mongo Secondary)
+  deploy-vm2:
+    name: Deploy vm2 (BE + Mongo Secondary)
+    runs-on: ["self-hosted", "linux", "vm2"]
     needs: [build-frontend, build-backend]
-    strategy:
-      matrix:
-        vm: [vm2, vm3]
-        include:
-          - vm: vm2
-            runs_on: ["self-hosted", "linux", "vm2"]
-          - vm: vm3
-            runs_on: ["self-hosted", "linux", "vm3"]
-    runs-on: ${{ matrix.runs_on }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Write .env and Deploy
-        shell: bash
+      - name: Write .env & Deploy
         run: |
           set -e
           printf '%s\n' "$ENV_CONTENT" > .env
-          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
-          echo "BACKEND_TAG=v${{ github.run_number }}" >> .env
-          echo "STATIC_TAG=latest" >> .env
-          
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | \
-            docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-          
+          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
           docker compose -f docker-compose.worker.yml pull
           docker compose -f docker-compose.worker.yml up -d --force-recreate --remove-orphans
           docker image prune -f
         env:
-          ENV_CONTENT: ${{ secrets.ENV_FILE_VM }}
+          ENV_CONTENT:        ${{ secrets.ENV_FILE_VM }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
+
+  deploy-vm3:
+    name: Deploy vm3 (BE + Mongo Secondary)
+    runs-on: ["self-hosted", "linux", "vm3"]
+    needs: [build-frontend, build-backend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Write .env & Deploy
+        run: |
+          set -e
+          printf '%s\n' "$ENV_CONTENT" > .env
+          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          docker compose -f docker-compose.worker.yml pull
+          docker compose -f docker-compose.worker.yml up -d --force-recreate --remove-orphans
+          docker image prune -f
+        env:
+          ENV_CONTENT:        ${{ secrets.ENV_FILE_VM }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
