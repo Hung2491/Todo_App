@@ -8,10 +8,10 @@ env:
   IMAGE_FRONTEND: ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-frontend
   IMAGE_BACKEND:  ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-backend
 
+jobs:
 # ─────────────────────────────────────────────────────────────────────────────
 # BUILD — FE & BE song song
 # ─────────────────────────────────────────────────────────────────────────────
-jobs:
   build-frontend:
     name: "Build & Push Frontend"
     runs-on: ubuntu-latest
@@ -49,20 +49,19 @@ jobs:
           cache-to:   type=registry,ref=${{ env.IMAGE_BACKEND }}:cache,mode=max
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DEPLOY LB (VM1 & VM5) — Dùng Self-hosted Runner
+# DEPLOY LB — VM1 & VM5 song song, self-hosted runners
 # ─────────────────────────────────────────────────────────────────────────────
   deploy-lb:
-    name: "Deploy ${{ matrix.vm }} — LB + FE + Monitor"
+    name: "Deploy ${{ matrix.vm }}"
     needs: [build-frontend, build-backend]
     strategy:
       fail-fast: false
       matrix:
-        vm: [vm1, vm5]
         include:
           - vm: vm1
-            runner: ["self-hosted", "linux", "vm1"]
+            runner: [self-hosted, linux, vm1]
           - vm: vm5
-            runner: ["self-hosted", "linux", "vm5"]
+            runner: [self-hosted, linux, vm5]
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -78,27 +77,25 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          for f in monitoring/prometheus/prometheus.yml monitoring/alertmanager/alertmanager.yml; do
+          for f in monitoring/prometheus.yml monitoring/alertmanager.yml; do
             [ -f "$f" ] || { echo "ERROR: $f not found"; exit 1; }
             envsubst < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
           done
 
-      - name: "Cleanup & Deploy"
+      - name: Cleanup
         run: |
-          set -e
-          # Dọn dẹp
           docker compose down --remove-orphans || true
-          docker ps -q | xargs -r docker stop || true
           docker ps -aq | xargs -r docker rm -f || true
           docker image prune -af || true
 
-          # Ghi .env và bơm biến
-          printf '%s\n' "$ENV_CONTENT" > .env
+      - name: Deploy
+        run: |
+          set -e
+          printf '%s\n' "$ENV_CONTENT"        > .env
           echo "DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME" >> .env
-          echo "VM2_PRIVATE_IP=$VM2_PRIVATE_IP" >> .env
-          echo "VM3_PRIVATE_IP=$VM3_PRIVATE_IP" >> .env
-          echo "VM_PUBLIC_IP=$VM_PUBLIC_IP" >> .env
-
+          echo "VM2_PRIVATE_IP=$VM2_PRIVATE_IP"         >> .env
+          echo "VM3_PRIVATE_IP=$VM3_PRIVATE_IP"         >> .env
+          echo "VM_PUBLIC_IP=$VM_PUBLIC_IP"             >> .env
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
           docker compose pull
           docker compose up -d --remove-orphans
@@ -112,82 +109,44 @@ jobs:
           VM_PUBLIC_IP:       ${{ secrets.VM_PUBLIC_IP }}
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DEPLOY WORKERS — VM2 & VM3 song song (self-hosted runners)
+# DEPLOY WORKERS — VM2 & VM3 song song, self-hosted runners
 # ─────────────────────────────────────────────────────────────────────────────
-  deploy-vm2:
-    name: "Deploy vm2 — BE + Mongo Secondary"
-    runs-on: ["self-hosted", "linux", "vm2"]
+  deploy-worker:
+    name: "Deploy ${{ matrix.vm }}"
     needs: [build-frontend, build-backend]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - vm: vm2
+            runner: [self-hosted, linux, vm2]
+          - vm: vm3
+            runner: [self-hosted, linux, vm3]
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
-      - name: "Setup Mongo Keyfile"
+
+      - name: Setup Mongo keyfile
         run: |
           echo "$MONGO_KEYFILE" | sudo tee /etc/mongo-keyfile > /dev/null
           sudo chmod 400 /etc/mongo-keyfile
-          sudo chown mongodb:mongodb /etc/mongo-keyfile || true
+          sudo chown 999:999 /etc/mongo-keyfile || true
         env:
           MONGO_KEYFILE: ${{ secrets.MONGO_KEYFILE }}
-      - name: "Cleanup & Deploy"
+
+      - name: Cleanup
         run: |
-          set -e
           docker compose -f docker-compose.worker.yml down --remove-orphans || true
-          docker ps -q | xargs -r docker stop || true
           docker ps -aq | xargs -r docker rm -f || true
           docker image prune -af || true
 
-          printf '%s\n' "$ENV_CONTENT" > .env
-          echo "DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME" >> .env
-          echo "VM2_PRIVATE_IP=$VM2_PRIVATE_IP" >> .env
-          echo "VM3_PRIVATE_IP=$VM3_PRIVATE_IP" >> .env
-          echo "VM4_PRIVATE_IP=$VM4_PRIVATE_IP" >> .env
-
+      - name: Deploy
+        run: |
+          set -e
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
           docker compose -f docker-compose.worker.yml pull
           docker compose -f docker-compose.worker.yml up -d --remove-orphans
           docker image prune -f
         env:
-          ENV_CONTENT:        ${{ secrets.ENV_FILE_VM }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
-          VM2_PRIVATE_IP:     ${{ secrets.VM2_PRIVATE_IP }}
-          VM3_PRIVATE_IP:     ${{ secrets.VM3_PRIVATE_IP }}
-          VM4_PRIVATE_IP:     ${{ secrets.VM4_PRIVATE_IP }}
-
-  deploy-vm3:
-    name: "Deploy vm3 — BE + Mongo Secondary"
-    runs-on: ["self-hosted", "linux", "vm3"]
-    needs: [build-frontend, build-backend]
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Setup Mongo Keyfile"
-        run: |
-          echo "$MONGO_KEYFILE" | sudo tee /etc/mongo-keyfile > /dev/null
-          sudo chmod 400 /etc/mongo-keyfile
-          sudo chown mongodb:mongodb /etc/mongo-keyfile || true
-        env:
-          MONGO_KEYFILE: ${{ secrets.MONGO_KEYFILE }}
-      - name: "Cleanup & Deploy"
-        run: |
-          set -e
-          docker compose -f docker-compose.worker.yml down --remove-orphans || true
-          docker ps -q | xargs -r docker stop || true
-          docker ps -aq | xargs -r docker rm -f || true
-          docker image prune -af || true
-
-          printf '%s\n' "$ENV_CONTENT" > .env
-          echo "DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME" >> .env
-          echo "VM2_PRIVATE_IP=$VM2_PRIVATE_IP" >> .env
-          echo "VM3_PRIVATE_IP=$VM3_PRIVATE_IP" >> .env
-          echo "VM4_PRIVATE_IP=$VM4_PRIVATE_IP" >> .env
-
-          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-          docker compose -f docker-compose.worker.yml pull
-          docker compose -f docker-compose.worker.yml up -d --remove-orphans
-          docker image prune -f
-        env:
-          ENV_CONTENT:        ${{ secrets.ENV_FILE_VM }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
-          VM2_PRIVATE_IP:     ${{ secrets.VM2_PRIVATE_IP }}
-          VM3_PRIVATE_IP:     ${{ secrets.VM3_PRIVATE_IP }}
-          VM4_PRIVATE_IP:     ${{ secrets.VM4_PRIVATE_IP }}
