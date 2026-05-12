@@ -85,8 +85,8 @@ jobs:
       - name: Cleanup
         run: |
           docker compose down --remove-orphans || true
-          # Kill bất kỳ tiến trình nào đang chiếm port 8080
-          sudo fuser -k 8080/tcp || true
+          # Kill bất kỳ tiến trình nào đang chiếm port 8081 (cadvisor)
+          sudo fuser -k 8081/tcp || true
           docker ps -aq | xargs -r docker rm -f || true
           docker image prune -af || true
 
@@ -152,8 +152,8 @@ jobs:
       - name: Cleanup
         run: |
           docker compose -f docker-compose.worker.yml down --remove-orphans || true
-          # Kill bất kỳ tiến trình nào đang chiếm port 8080
-          sudo fuser -k 8080/tcp || true
+          # Kill bất kỳ tiến trình nào đang chiếm port 8081 (cadvisor)
+          sudo fuser -k 8081/tcp || true
           docker ps -aq | xargs -r docker rm -f || true
           docker image prune -af || true
 
