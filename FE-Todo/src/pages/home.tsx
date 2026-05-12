@@ -85,7 +85,7 @@ export default function Home() {
         }}
       >
         <Typography variant={isMobile ? "h4" : "h3"} sx={{ fontWeight: 600 }}>
-          Today {getToday()} (CI/CD Testing v2)
+          Today {getToday()}
         </Typography>
 
         <Grid container spacing={2} sx={styles.tagsGrid}>
