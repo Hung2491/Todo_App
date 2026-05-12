@@ -66,7 +66,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Sync code to project directory
+        run: |
+          mkdir -p /root/project/Todo_App
+          rsync -avz --delete --exclude '.git' ./ /root/project/Todo_App/
+
       - name: Render monitoring configs
+        working-directory: /root/project/Todo_App
         env:
           VM1_PRIVATE_IP:     ${{ secrets.VM1_PRIVATE_IP }}
           VM2_PRIVATE_IP:     ${{ secrets.VM2_PRIVATE_IP }}
@@ -83,6 +89,7 @@ jobs:
           done
 
       - name: Cleanup
+        working-directory: /root/project/Todo_App
         run: |
           docker compose down --remove-orphans || true
           # Kill bất kỳ tiến trình nào đang chiếm port 8081 (cadvisor)
@@ -91,6 +98,7 @@ jobs:
           docker image prune -af || true
 
       - name: Deploy
+        working-directory: /root/project/Todo_App
         run: |
           set -e
           printf '%s\n' "$ENV_CONTENT"        > .env
@@ -141,7 +149,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Sync code to project directory
+        run: |
+          mkdir -p /root/project/Todo_App
+          rsync -avz --delete --exclude '.git' ./ /root/project/Todo_App/
+
       - name: Setup Mongo keyfile
+        working-directory: /root/project/Todo_App
         run: |
           echo "$MONGO_KEYFILE" | sudo tee /etc/mongo-keyfile > /dev/null
           sudo chmod 400 /etc/mongo-keyfile
@@ -150,6 +164,7 @@ jobs:
           MONGO_KEYFILE: ${{ secrets.MONGO_KEYFILE }}
 
       - name: Cleanup
+        working-directory: /root/project/Todo_App
         run: |
           docker compose -f docker-compose.worker.yml down --remove-orphans || true
           # Kill bất kỳ tiến trình nào đang chiếm port 8081 (cadvisor)
@@ -158,6 +173,7 @@ jobs:
           docker image prune -af || true
 
       - name: Deploy
+        working-directory: /root/project/Todo_App
         run: |
           set -e
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
