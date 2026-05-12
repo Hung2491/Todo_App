@@ -49,11 +49,10 @@ jobs:
           cache-to:   type=registry,ref=${{ env.IMAGE_BACKEND }}:cache,mode=max
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DEPLOY LB — VM1 & VM5 song song
+# DEPLOY LB (VM1 & VM5) — Dùng Self-hosted Runner
 # ─────────────────────────────────────────────────────────────────────────────
   deploy-lb:
     name: "Deploy ${{ matrix.vm }} — LB + FE + Monitor"
-    runs-on: ubuntu-latest
     needs: [build-frontend, build-backend]
     strategy:
       fail-fast: false
@@ -61,13 +60,10 @@ jobs:
         vm: [vm1, vm5]
         include:
           - vm: vm1
-            host_secret: VM1_HOST
-            key_secret:  VM1_SSH_KEY
-            env_secret:  ENV_FILE_VM
+            runner: ["self-hosted", "linux", "vm1"]
           - vm: vm5
-            host_secret: VM5_HOST
-            key_secret:  VM5_SSH_KEY
-            env_secret:  ENV_FILE_VM
+            runner: ["self-hosted", "linux", "vm5"]
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
 
@@ -87,44 +83,28 @@ jobs:
             envsubst < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
           done
 
-      - name: Copy files to ${{ matrix.vm }}
-        uses: appleboy/scp-action@master
-        with:
-          host:     ${{ secrets[matrix.host_secret] }}
-          username: ${{ secrets.SERVER_USER }}
-          key:      ${{ secrets[matrix.key_secret] }}
-          port:     ${{ secrets.SERVER_PORT }}
-          source:   "docker-compose.yml,nginx/,monitoring/"
-          target:   "~/project/Todo_App"
+      - name: "Cleanup & Deploy"
+        run: |
+          set -e
+          # Dọn dẹp
+          docker compose down --remove-orphans || true
+          docker ps -q | xargs -r docker stop || true
+          docker ps -aq | xargs -r docker rm -f || true
+          docker image prune -af || true
 
-      - name: SSH Deploy ${{ matrix.vm }}
-        uses: appleboy/ssh-action@master
-        with:
-          host:     ${{ secrets[matrix.host_secret] }}
-          username: ${{ secrets.SERVER_USER }}
-          key:      ${{ secrets[matrix.key_secret] }}
-          port:     ${{ secrets.SERVER_PORT }}
-          script: |
-            set -e
-            cd ~/project/Todo_App
-            
-            docker compose down --remove-orphans || true
-            docker ps -q | xargs -r docker stop || true
-            docker ps -aq | xargs -r docker rm -f || true
-            docker image prune -af || true
+          # Ghi .env và bơm biến
+          printf '%s\n' "$ENV_CONTENT" > .env
+          echo "DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME" >> .env
+          echo "VM2_PRIVATE_IP=$VM2_PRIVATE_IP" >> .env
+          echo "VM3_PRIVATE_IP=$VM3_PRIVATE_IP" >> .env
+          echo "VM_PUBLIC_IP=$VM_PUBLIC_IP" >> .env
 
-            printf '%s\n' "$ENV_CONTENT" > .env
-            echo "DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME" >> .env
-            echo "VM2_PRIVATE_IP=$VM2_PRIVATE_IP" >> .env
-            echo "VM3_PRIVATE_IP=$VM3_PRIVATE_IP" >> .env
-            echo "VM_PUBLIC_IP=$VM_PUBLIC_IP" >> .env
-
-            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-            docker compose pull
-            docker compose up -d --remove-orphans
-            docker image prune -f
+          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          docker compose pull
+          docker compose up -d --remove-orphans
+          docker image prune -f
         env:
-          ENV_CONTENT:        ${{ secrets[matrix.env_secret] }}
+          ENV_CONTENT:        ${{ secrets.ENV_FILE_VM }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
           VM2_PRIVATE_IP:     ${{ secrets.VM2_PRIVATE_IP }}
