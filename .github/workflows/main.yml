@@ -63,10 +63,10 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          envsubst < monitoring/prometheus.yml    > monitoring/prometheus.rendered.yml
-          mv monitoring/prometheus.rendered.yml     monitoring/prometheus.yml
-          envsubst < monitoring/alertmanager.yml  > monitoring/alertmanager.rendered.yml
-          mv monitoring/alertmanager.rendered.yml   monitoring/alertmanager.yml
+          envsubst < monitoring/prometheus/prometheus.yml    > monitoring/prometheus/prometheus.rendered.yml
+          mv monitoring/prometheus/prometheus.rendered.yml     monitoring/prometheus/prometheus.yml
+          envsubst < monitoring/alertmanager/alertmanager.yml  > monitoring/alertmanager/alertmanager.rendered.yml
+          mv monitoring/alertmanager/alertmanager.rendered.yml   monitoring/alertmanager.yml
 
       - name: Copy files lên ${{ matrix.vm }}
         uses: appleboy/scp-action@master
@@ -80,9 +80,7 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets[matrix.host_secret] }}
-          username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets[matrix.ssh_key_secret] }}
-          port: ${{ secrets.SERVER_PORT }}
           script: |
             set -e
             cd ~/project/Todo_App
@@ -107,10 +105,10 @@ jobs:
         include:
           - vm: vm2
             runner: '["self-hosted","linux","vm2"]'
-            env_secret: ENV_FILE_VM2
+            env_secret: ENV_FILE_VM
           - vm: vm3
             runner: '["self-hosted","linux","vm3"]'
-            env_secret: ENV_FILE_VM3
+            env_secret: ENV_FILE_VM
 
     runs-on: ${{ fromJson(matrix.runner) }}
     steps:
