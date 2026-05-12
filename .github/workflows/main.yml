@@ -7,14 +7,13 @@ on:
 env:
   IMAGE_FRONTEND: ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-frontend
   IMAGE_BACKEND:  ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-backend
-  PROJECT_PATH:   /root/project/Todo_App
 
-jobs:
 # ─────────────────────────────────────────────────────────────────────────────
 # BUILD — FE & BE song song
 # ─────────────────────────────────────────────────────────────────────────────
+jobs:
   build-frontend:
-    name: "Build & Push Frontend"
+    name: Build & Push Frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +31,7 @@ jobs:
           cache-to:   type=registry,ref=${{ env.IMAGE_FRONTEND }}:cache,mode=max
 
   build-backend:
-    name: "Build & Push Backend"
+    name: Build & Push Backend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,153 +49,102 @@ jobs:
           cache-to:   type=registry,ref=${{ env.IMAGE_BACKEND }}:cache,mode=max
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DEPLOY LB — VM1 & VM5 song song
+# DEPLOY LB — VM1 & VM5
 # ─────────────────────────────────────────────────────────────────────────────
   deploy-lb:
-    name: "Deploy ${{ matrix.vm }}"
+    name: Deploy ${{ matrix.vm }} (LB + FE + Monitor)
+    runs-on: ubuntu-latest
     needs: [build-frontend, build-backend]
     strategy:
-      fail-fast: false
       matrix:
+        vm: [vm1, vm5]
         include:
           - vm: vm1
-            runner: [self-hosted, linux, vm1]
+            host_secret: VM1_HOST
+            key_secret:  VM1_SSH_KEY
           - vm: vm5
-            runner: [self-hosted, linux, vm5]
-    runs-on: ${{ matrix.runner }}
-    defaults:
-      run:
-        working-directory: /root/project/Todo_App
+            host_secret: VM5_HOST
+            key_secret:  VM5_SSH_KEY
     steps:
       - uses: actions/checkout@v4
 
-      - name: Sync code
-        working-directory: .
-        run: |
-          mkdir -p ${{ env.PROJECT_PATH }}
-          rsync -avz --delete --exclude '.git' ./ ${{ env.PROJECT_PATH }}/
-
       - name: Render monitoring configs
+        shell: bash
         env:
-          VM1_PRIVATE_IP:     ${{ secrets.VM1_PRIVATE_IP }}
           VM2_PRIVATE_IP:     ${{ secrets.VM2_PRIVATE_IP }}
           VM3_PRIVATE_IP:     ${{ secrets.VM3_PRIVATE_IP }}
           VM4_PRIVATE_IP:     ${{ secrets.VM4_PRIVATE_IP }}
-          VM5_PRIVATE_IP:     ${{ secrets.VM5_PRIVATE_IP }}
-          VM_PUBLIC_IP:       ${{ secrets.VM_PUBLIC_IP }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          for f in monitoring/prometheus/prometheus.yml monitoring/alertmanager/alertmanager.yml; do
-            [ -f "$f" ] || continue
-            envsubst < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
-          done
-
-      - name: Cleanup & Deploy
-        run: |
-          docker compose down --remove-orphans || true
-          sudo fuser -k 8081/tcp || true
-          
-          printf '%s\n' "$ENV_CONTENT" > .env
-          echo "DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME" >> .env
-          echo "VM2_PRIVATE_IP=$VM2_PRIVATE_IP"         >> .env
-          echo "VM3_PRIVATE_IP=$VM3_PRIVATE_IP"         >> .env
-          echo "VM_PUBLIC_IP=$VM_PUBLIC_IP"             >> .env
-
-          # Login sạch
-          docker logout || true
-          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-          
-          # Kiên trì pull 10 lần, mỗi lần cách nhau 15s
-          echo "Starting Docker image pull with persistence..."
-          success=false
-          for i in {1..10}; do
-            if docker compose pull; then
-              success=true
-              break
-            else
-              echo "Pull attempt $i failed. Retrying in 15s..."
-              sleep 15
+          for f in monitoring/prometheus.yml monitoring/alertmanager.yml; do
+            if [ -f "$f" ]; then
+              envsubst < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
             fi
           done
 
-          if [ "$success" = false ]; then
-            echo "Failed to pull images after 10 attempts. Network issue persists."
-            exit 1
-          fi
+      - name: Copy files to ${{ matrix.vm }}
+        uses: appleboy/scp-action@master
+        with:
+          host:     ${{ secrets[matrix.host_secret] }}
+          username: ${{ secrets.SERVER_USER }}
+          key:      ${{ secrets[matrix.key_secret] }}
+          port:     ${{ secrets.SERVER_PORT }}
+          source:   "docker-compose.yml,nginx/,monitoring/"
+          target:   "~/project/Todo_App"
 
-          docker compose up -d --remove-orphans
-          docker image prune -f
+      - name: SSH Deploy ${{ matrix.vm }}
+        uses: appleboy/ssh-action@master
+        with:
+          host:     ${{ secrets[matrix.host_secret] }}
+          username: ${{ secrets.SERVER_USER }}
+          key:      ${{ secrets[matrix.key_secret] }}
+          port:     ${{ secrets.SERVER_PORT }}
+          script: |
+            set -e
+            cd ~/project/Todo_App
+            
+            printf "%s\n" "$ENV_CONTENT" > .env
+            echo "DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME" >> .env
+            
+            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            docker compose pull
+            docker compose up -d --force-recreate --remove-orphans
+            docker image prune -f
         env:
           ENV_CONTENT:        ${{ secrets.ENV_FILE_VM }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
-          VM2_PRIVATE_IP:     ${{ secrets.VM2_PRIVATE_IP }}
-          VM3_PRIVATE_IP:     ${{ secrets.VM3_PRIVATE_IP }}
-          VM_PUBLIC_IP:       ${{ secrets.VM_PUBLIC_IP }}
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DEPLOY WORKERS — VM2 & VM3 song song
+# DEPLOY WORKERS — VM2 & VM3 (Self-hosted)
 # ─────────────────────────────────────────────────────────────────────────────
   deploy-worker:
-    name: "Deploy ${{ matrix.vm }}"
+    name: Deploy ${{ matrix.vm }} (BE + Mongo Secondary)
     needs: [build-frontend, build-backend]
     strategy:
-      fail-fast: false
       matrix:
+        vm: [vm2, vm3]
         include:
           - vm: vm2
-            runner: [self-hosted, linux, vm2]
+            runs_on: ["self-hosted", "linux", "vm2"]
           - vm: vm3
-            runner: [self-hosted, linux, vm3]
-    runs-on: ${{ matrix.runner }}
-    defaults:
-      run:
-        working-directory: /root/project/Todo_App
+            runs_on: ["self-hosted", "linux", "vm3"]
+    runs-on: ${{ matrix.runs_on }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Sync code
-        working-directory: .
+      - name: Write .env and Deploy
+        shell: bash
         run: |
-          mkdir -p ${{ env.PROJECT_PATH }}
-          rsync -avz --delete --exclude '.git' ./ ${{ env.PROJECT_PATH }}/
-
-      - name: Setup Mongo keyfile
-        run: |
-          echo "$MONGO_KEYFILE" | sudo tee /etc/mongo-keyfile > /dev/null
-          sudo chmod 400 /etc/mongo-keyfile
-          sudo chown 999:999 /etc/mongo-keyfile || true
-        env:
-          MONGO_KEYFILE: ${{ secrets.MONGO_KEYFILE }}
-
-      - name: Cleanup & Deploy
-        run: |
-          docker compose -f docker-compose.worker.yml down --remove-orphans || true
-          sudo fuser -k 8081/tcp || true
+          set -e
+          printf '%s\n' "$ENV_CONTENT" > .env
           
-          docker logout || true
-          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | \
+            docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
           
-          echo "Starting Docker image pull with persistence..."
-          success=false
-          for i in {1..10}; do
-            if docker compose -f docker-compose.worker.yml pull; then
-              success=true
-              break
-            else
-              echo "Pull attempt $i failed. Retrying in 15s..."
-              sleep 15
-            fi
-          done
-
-          if [ "$success" = false ]; then
-            echo "Failed to pull images after 10 attempts."
-            exit 1
-          fi
-
-          docker compose -f docker-compose.worker.yml up -d --remove-orphans
+          docker compose -f docker-compose.worker.yml pull
+          docker compose -f docker-compose.worker.yml up -d --force-recreate --remove-orphans
           docker image prune -f
         env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
+          ENV_CONTENT: ${{ secrets.ENV_FILE_VM }}
