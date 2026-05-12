@@ -97,7 +97,20 @@ jobs:
           echo "VM3_PRIVATE_IP=$VM3_PRIVATE_IP"         >> .env
           echo "VM_PUBLIC_IP=$VM_PUBLIC_IP"             >> .env
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-          docker compose pull
+          
+          # Thử lại pull 3 lần nếu lỗi mạng
+          for i in {1..3}; do
+            docker compose pull && break || {
+              if [ $i -lt 3 ]; then
+                echo "Pull failed, retrying in 5s... ($i/3)"
+                sleep 5
+              else
+                echo "Pull failed after 3 attempts."
+                exit 1
+              fi
+            }
+          done
+
           docker compose up -d --remove-orphans
           docker image prune -f
         env:
@@ -144,7 +157,20 @@ jobs:
         run: |
           set -e
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-          docker compose -f docker-compose.worker.yml pull
+          
+          # Thử lại pull 3 lần nếu lỗi mạng
+          for i in {1..3}; do
+            docker compose -f docker-compose.worker.yml pull && break || {
+              if [ $i -lt 3 ]; then
+                echo "Pull failed, retrying in 5s... ($i/3)"
+                sleep 5
+              else
+                echo "Pull failed after 3 attempts."
+                exit 1
+              fi
+            }
+          done
+
           docker compose -f docker-compose.worker.yml up -d --remove-orphans
           docker image prune -f
         env:
