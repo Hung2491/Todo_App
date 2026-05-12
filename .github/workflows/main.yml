@@ -64,10 +64,12 @@ jobs:
             host_secret: VM1_HOST
             key_secret:  VM1_SSH_KEY
             env_secret:  ENV_FILE_VM
+            user_secret: SERVER_USER
           - vm: vm5
             host_secret: VM5_HOST
             key_secret:  VM5_SSH_KEY
             env_secret:  ENV_FILE_VM
+            user_secret: SERVER_USER
     steps:
       - uses: actions/checkout@v4
 
@@ -91,7 +93,7 @@ jobs:
         uses: appleboy/scp-action@master
         with:
           host:     ${{ secrets[matrix.host_secret] }}
-          username: ${{ secrets.SERVER_USER }}
+          username: ${{ secrets[matrix.user_secret] }}
           key:      ${{ secrets[matrix.key_secret] }}
           port:     ${{ secrets.SERVER_PORT }}
           source:   "docker-compose.yml,nginx/,monitoring/"
@@ -101,7 +103,7 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host:     ${{ secrets[matrix.host_secret] }}
-          username: ${{ secrets.SERVER_USER }}
+          username: ${{ secrets[matrix.user_secret] }}
           key:      ${{ secrets[matrix.key_secret] }}
           port:     ${{ secrets.SERVER_PORT }}
           script: |
@@ -132,6 +134,13 @@ jobs:
     needs: [build-frontend, build-backend]
     steps:
       - uses: actions/checkout@v4
+      - name: "Setup Mongo Keyfile"
+        run: |
+          echo "$MONGO_KEYFILE" | sudo tee /etc/mongo-keyfile > /dev/null
+          sudo chmod 400 /etc/mongo-keyfile
+          sudo chown mongodb:mongodb /etc/mongo-keyfile || true
+        env:
+          MONGO_KEYFILE: ${{ secrets.MONGO_KEYFILE }}
       - name: "Cleanup & Deploy"
         run: |
           set -e
@@ -156,6 +165,13 @@ jobs:
     needs: [build-frontend, build-backend]
     steps:
       - uses: actions/checkout@v4
+      - name: "Setup Mongo Keyfile"
+        run: |
+          echo "$MONGO_KEYFILE" | sudo tee /etc/mongo-keyfile > /dev/null
+          sudo chmod 400 /etc/mongo-keyfile
+          sudo chown mongodb:mongodb /etc/mongo-keyfile || true
+        env:
+          MONGO_KEYFILE: ${{ secrets.MONGO_KEYFILE }}
       - name: "Cleanup & Deploy"
         run: |
           set -e
