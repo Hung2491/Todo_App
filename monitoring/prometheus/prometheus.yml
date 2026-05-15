@@ -32,12 +32,6 @@ scrape_configs:
           vm: 'vm1'
           role: 'loadbalancer'
 
-  - job_name: 'frontend-vm1'
-    static_configs:
-      - targets: ['${VM1_PRIVATE_IP}:9113']
-        labels:
-          vm: 'vm1'
-          role: 'frontend'
 
   # VM5 - Load Balancer + Monitor (máy khác, scrape qua private IP)
   - job_name: 'node-exporter-vm5'
@@ -55,12 +49,6 @@ scrape_configs:
           vm: 'vm5'
           role: 'loadbalancer'
 
-  - job_name: 'frontend-vm5'
-    static_configs:
-      - targets: ['${VM5_PRIVATE_IP}:9113']
-        labels:
-          vm: 'vm5'
-          role: 'frontend'
 
   # VM2 - Backend + Mongo Secondary
   - job_name: 'node-exporter-vm2'
