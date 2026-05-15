@@ -38,7 +38,7 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.retention.time=15d'
     ports:
-      - "9090:9090"
+      - "${VM_PRIVATE_IP}:9090:9090"
     networks:
       - todo-network
 
@@ -49,7 +49,7 @@ services:
     volumes:
       - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
     ports:
-      - "9093:9093"
+      - "${VM_PRIVATE_IP}:9093:9093"
     networks:
       - todo-network
 
@@ -58,7 +58,7 @@ services:
     container_name: grafana
     restart: always
     ports:
-      - "3000:3000"
+      - "${VM_PRIVATE_IP}:3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
     networks:
@@ -80,7 +80,7 @@ services:
       - '--housekeeping_interval=10s'
       - '--allow_dynamic_housekeeping=true'
     ports:
-      - "8081:8080"
+      - "${VM_PRIVATE_IP}:8081:8080"
     networks:
       - todo-network
 
@@ -98,7 +98,7 @@ services:
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
-      - "9100:9100"
+      - "${VM_PRIVATE_IP}:9100:9100"
     networks:
       - todo-network
 

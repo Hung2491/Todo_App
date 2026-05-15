@@ -7,7 +7,7 @@ services:
     container_name: todo-app-backend
     restart: always
     ports:
-      - "8000:8000"
+      - "${VM_PRIVATE_IP}:8000:8000"
     environment:
       - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${VM4_PRIVATE_IP}:27017,${VM2_PRIVATE_IP}:27017,${VM3_PRIVATE_IP}:27017/ts-crud?replicaSet=rs0&authSource=admin
     healthcheck:
@@ -32,7 +32,7 @@ services:
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
-      - "9100:9100"
+      - "${VM_PRIVATE_IP}:9100:9100"
     networks:
       - todo-network
 
@@ -52,7 +52,7 @@ services:
       - '--housekeeping_interval=10s'
       - '--allow_dynamic_housekeeping=true'
     ports:
-      - "8081:8080"
+      - "${VM_PRIVATE_IP}:8081:8080"
     networks:
       - todo-network
 

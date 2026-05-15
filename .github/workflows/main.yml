@@ -73,6 +73,12 @@ jobs:
           VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}
           VM1_PUBLIC_IP=${{ secrets.VM1_HOST }}
           EOF
+          
+          if [ "${{ matrix.vm }}" == "vm1" ]; then
+            echo "VM_PRIVATE_IP=${{ secrets.VM1_PRIVATE_IP }}" >> .env
+          elif [ "${{ matrix.vm }}" == "vm5" ]; then
+            echo "VM_PRIVATE_IP=${{ secrets.VM5_PRIVATE_IP }}" >> .env
+          fi
 
       - name: Copy files lên ${{ matrix.vm }}
         uses: appleboy/scp-action@master
@@ -131,6 +137,12 @@ jobs:
           VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}
           VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}
           EOF
+
+          if [ "${{ matrix.vm }}" == "vm2" ]; then
+            echo "VM_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}" >> .env
+          elif [ "${{ matrix.vm }}" == "vm3" ]; then
+            echo "VM_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}" >> .env
+          fi
 
       - name: Deploy ${{ matrix.vm }}
         run: |
