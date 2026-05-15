@@ -176,6 +176,7 @@ export default function AddTodo() {
           <IconButton sx={styles.backButton} onClick={() => navigate("/")}>
             <ArrowBackIcon />
           </IconButton>
+          <Typography sx={{ display: 'none' }} id="version-marker">v1.1-fix</Typography>
         </Box>
         <Box sx={styles.inputBox}>
           <Box>

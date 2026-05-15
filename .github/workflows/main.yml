@@ -61,6 +61,14 @@ jobs:
         run: |
           ls -R monitoring/
           envsubst < monitoring/prometheus/prometheus.yml    > monitoring/prometheus/prometheus.rendered.yml
+          
+          # Fix: Nếu là VM cục bộ, dùng service name để tránh lỗi routing Docker
+          if [ "${{ matrix.vm }}" == "vm1" ]; then
+            sed -i "s/${VM1_PRIVATE_IP}:9113/nginx-exporter:9113/g" monitoring/prometheus/prometheus.rendered.yml
+          elif [ "${{ matrix.vm }}" == "vm5" ]; then
+            sed -i "s/${VM5_PRIVATE_IP}:9113/nginx-exporter:9113/g" monitoring/prometheus/prometheus.rendered.yml
+          fi
+          
           mv monitoring/prometheus/prometheus.rendered.yml     monitoring/prometheus/prometheus.yml
           envsubst < monitoring/alertmanager/alertmanager.yml  > monitoring/alertmanager/alertmanager.rendered.yml
           mv monitoring/alertmanager/alertmanager.rendered.yml   monitoring/alertmanager/alertmanager.yml

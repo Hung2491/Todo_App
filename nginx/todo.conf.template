@@ -47,8 +47,11 @@ server {
         stub_status on;
         access_log off;
         allow 127.0.0.1;
-        allow 10.0.0.0/8; # Allow internal network
-        allow 172.16.0.0/12; # Allow docker network
+        allow [IP_ADDRESS]; # Allow internal network
+        allow [IP_ADDRESS]; # Allow docker network
+        allow [IP_ADDRESS]; # Allow monitoring VM
+        allow [IP_ADDRESS]; # Allow monitoring VM
+        allow [IP_ADDRESS]; # Allow frontend container
         deny all;
     }
 
