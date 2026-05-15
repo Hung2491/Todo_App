@@ -32,7 +32,7 @@ export default function AddTodo() {
   const [title, setTitle] = useState("");
   const [comment, setComment] = useState("");
   const [tag, setTag] = useState(TAGS[0]);
-  const [date, setDate] = useState<Dayjs | null>(dayjs());
+  const [date, setDate] = useState<Dayjs | null>(dayjs().add(2, "minute"));
   const [errors, setErrors] = useState<ValidationErrors>({
     title: "",
     comment: "",
@@ -78,7 +78,7 @@ export default function AddTodo() {
       return "Date and time is required";
     }
     const now = dayjs().startOf("minute");
-    const selectedDate = dayjs(value);
+    const selectedDate = dayjs(value).startOf("minute");
     if (selectedDate.isBefore(now)) {
       return "Date and time cannot be in the past";
     }

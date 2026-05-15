@@ -102,6 +102,19 @@ services:
     networks:
       - todo-network
 
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    container_name: nginx-exporter
+    restart: always
+    command:
+      - -nginx.scrape-uri=http://frontend:80/nginx_status
+    ports:
+      - "9113:9113"
+    depends_on:
+      - frontend
+    networks:
+      - todo-network
+
 networks:
   todo-network:
     driver: bridge
