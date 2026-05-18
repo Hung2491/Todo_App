@@ -71,13 +71,14 @@ jobs:
           DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
           VM2_PRIVATE_IP=${{ secrets.VM2_PRIVATE_IP }}
           VM3_PRIVATE_IP=${{ secrets.VM3_PRIVATE_IP }}
-          VM1_PUBLIC_IP=${{ secrets.VM1_HOST }}
           EOF
           
           if [ "${{ matrix.vm }}" == "vm1" ]; then
             echo "VM_PRIVATE_IP=${{ secrets.VM1_PRIVATE_IP }}" >> .env
+            echo "VM_PUBLIC_IP=${{ secrets.VM1_HOST }}" >> .env
           elif [ "${{ matrix.vm }}" == "vm5" ]; then
             echo "VM_PRIVATE_IP=${{ secrets.VM5_PRIVATE_IP }}" >> .env
+            echo "VM_PUBLIC_IP=${{ secrets.VM5_HOST }}" >> .env
           fi
 
       - name: Copy files lên ${{ matrix.vm }}
