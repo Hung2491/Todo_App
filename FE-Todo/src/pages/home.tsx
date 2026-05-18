@@ -85,7 +85,7 @@ export default function Home() {
         }}
       >
         <Typography variant={isMobile ? "h4" : "h3"} sx={{ fontWeight: 600 }}>
-          My Tasks Today {getToday()}
+          Today {getToday()}
         </Typography>
 
         <Grid container spacing={2} sx={styles.tagsGrid}>
