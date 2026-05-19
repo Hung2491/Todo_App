@@ -7,6 +7,7 @@ import taskRoutes from "./routes/taskRoutes";
 import cors from "cors";
 import logger from "./utils/logger";
 import { httpLogger } from "./middlewares/httpLogger";
+import { mongoSanitize } from "./middlewares/sanitize";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -26,6 +27,9 @@ app.use(httpLogger);
 // Middleware để parse body JSON và form-urlencoded
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Sanitize NoSQL injection attempts
+app.use(mongoSanitize);
 
 // Kết nối MongoDB
 mongoose
@@ -85,9 +89,34 @@ app.get("/metrics", async (_req, res) => {
 app.use("/tasks", taskRoutes);
 
 // Khởi động server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info(`🚀 Server running on http://localhost:${PORT}`, {
     port: PORT,
     env: process.env.NODE_ENV || "development",
   });
 });
+
+// Graceful shutdown
+const gracefulShutdown = (signal: string) => {
+  logger.info(`${signal} received. Starting graceful shutdown...`);
+  server.close(async () => {
+    logger.info("HTTP server closed.");
+    try {
+      await mongoose.connection.close(false);
+      logger.info("MongoDB connection closed.");
+      process.exit(0);
+    } catch (err) {
+      logger.error("Error during graceful shutdown", { error: (err as Error).message });
+      process.exit(1);
+    }
+  });
+
+  // Force shutdown after 10s if hanging
+  setTimeout(() => {
+    logger.error("Forced shutdown after timeout");
+    process.exit(1);
+  }, 10000);
+};
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));

@@ -1,1 +1,29 @@
+# Root gitignore
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+logs/
+
+# Build artifacts
+**/dist/
+**/build/
+
+# Node modules
+**/node_modules/
+
+# Coverage
+coverage/
+
+# Dashboard export (large)
 Todo-dashboard.json

@@ -9,7 +9,11 @@ services:
     ports:
       - "${VM_PRIVATE_IP}:8000:8000"
     environment:
+      - NODE_ENV=production
       - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${VM4_PRIVATE_IP}:27017,${VM2_PRIVATE_IP}:27017,${VM3_PRIVATE_IP}:27017/ts-crud?replicaSet=rs0&authSource=admin
+      - CORS_ORIGIN=https://xor-app.site
+    volumes:
+      - be_logs:/app/logs
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://localhost:8000/health || exit 1" ]
       interval: 30s
@@ -61,4 +65,4 @@ networks:
     driver: bridge
 
 volumes:
-  mongo_data:
+  be_logs:

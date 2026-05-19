@@ -4,7 +4,7 @@ groups:
 
   - alert: InstanceDown
     expr: up == 0
-    for: 0s    # Bắn ngay lập tức không cần chờ
+    for: 15s    # Chờ 1 scrape cycle để tránh false positive
     labels:
       severity: critical
     annotations:

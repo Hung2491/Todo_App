@@ -26,9 +26,9 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import type { Todo } from "../types";
 interface Props {
   todo: Todo;
-  onToggle: (id: number) => void;
-  onDelete: (id: number) => void;
-  onUpdate?: (id: number, updatedTodo: Partial<Todo>) => void;
+  onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
+  onUpdate?: (id: string, updatedTodo: Partial<Todo>) => void;
 }
 
 const TAGS = ["Work", "Health", "Mental", "Others"];

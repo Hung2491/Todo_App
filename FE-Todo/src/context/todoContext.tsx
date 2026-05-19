@@ -10,9 +10,9 @@ import type { AddTodo, Todo } from "../types";
 interface TodoContextType {
   todos: Todo[];
   addTodo: (todo: Omit<Todo, "id">) => void;
-  toggleTodo: (id: number) => void;
-  deleteTodo: (id: number) => void;
-  updateTodo: (id: number, updatedFields: Partial<Todo>) => void;
+  toggleTodo: (id: string) => void;
+  deleteTodo: (id: string) => void;
+  updateTodo: (id: string, updatedFields: Partial<Todo>) => void;
   getTodosByDate: (date: string) => Todo[];
   countByTag: (tag: string) => number;
   loading: boolean;

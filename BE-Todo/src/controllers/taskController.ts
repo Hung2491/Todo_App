@@ -18,9 +18,30 @@ const validateTaskInput = (title: any, comment: any, tag: any, date: any, comple
 
 export const getAllTasks = async (req: Request, res: Response) => {
   try {
-    const tasks = await Task.find();
-    logger.info('Fetched all tasks', { count: tasks.length });
-    res.json(tasks);
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 100));
+    const skip = (page - 1) * limit;
+
+    const [tasks, total] = await Promise.all([
+      Task.find().skip(skip).limit(limit),
+      Task.countDocuments(),
+    ]);
+
+    logger.info('Fetched all tasks', { count: tasks.length, page, limit, total });
+
+    // Backward compatibility: return plain array if no pagination requested
+    if (!req.query.page && !req.query.limit) {
+      res.json(tasks);
+      return;
+    }
+
+    res.json({
+      data: tasks,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (error) {
     logger.error('Failed to fetch tasks', { error: (error as Error).message });
     res.status(500).json({ error: 'Server error' });
