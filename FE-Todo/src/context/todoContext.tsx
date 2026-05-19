@@ -101,7 +101,7 @@ export const TodoProvider = ({ children }: TodoProviderProps) => {
     }
   };
 
-  const toggleTodo = async (id: number) => {
+  const toggleTodo = async (id: string) => {
     const todo = todos.find((t) => t._id === id);
     if (!todo) return;
 
@@ -135,7 +135,7 @@ export const TodoProvider = ({ children }: TodoProviderProps) => {
     }
   };
 
-  const deleteTodo = async (id: number) => {
+  const deleteTodo = async (id: string) => {
     // Optimistic delete
     const previousTodos = [...todos];
     setTodos(todos.filter((t) => t._id !== id));
@@ -157,7 +157,7 @@ export const TodoProvider = ({ children }: TodoProviderProps) => {
     }
   };
 
-  const updateTodo = async (id: number, updatedFields: Partial<Todo>) => {
+  const updateTodo = async (id: string, updatedFields: Partial<Todo>) => {
     const todo = todos.find((t) => t._id === id);
     if (!todo) return;
 
